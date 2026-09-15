@@ -40,19 +40,19 @@ Estado: en progreso.
 
 ## Fase 4 - Desarrollo de modulos
 
-Estado: pendiente.
+Estado: experiencia frontend demostrativa completada; implementacion con datos reales pendiente.
 
-- Dashboard.
-- Auditoria.
-- Metricas.
-- Contenido.
-- Audiencia.
-- Comparativas.
-- Insights.
-- Recomendaciones.
-- Reportes.
-- Integraciones.
-- Configuracion.
+- Dashboard. Estado: demo funcional.
+- Auditoria. Estado: demo funcional.
+- Metricas. Estado: demo funcional.
+- Contenido. Estado: demo funcional.
+- Audiencia. Estado: demo funcional sujeto a disponibilidad.
+- Comparativas. Estado: demo funcional.
+- Insights. Estado: demo funcional.
+- Recomendaciones. Estado: demo funcional.
+- Reportes. Estado: HTML funcional; PDF pendiente.
+- Integraciones. Estado: interfaz demostrativa; APIs pendientes.
+- Configuracion. Estado: interfaz demostrativa; backend pendiente.
 
 ## Fase 5 - Integracion
 

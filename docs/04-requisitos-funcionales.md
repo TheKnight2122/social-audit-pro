@@ -24,7 +24,8 @@
 - RF-020 - El sistema debe indicar "Metrica no disponible para esta plataforma o nivel de acceso" cuando corresponda.
 - RF-021 - El sistema debe almacenar historicos de metricas, publicaciones, auditorias, recomendaciones, reportes, sincronizaciones y actividad.
 - RF-022 - El sistema no debe publicar, programar ni automatizar publicaciones en redes sociales.
+- RF-023 - El sistema debe presentar Dashboard, Auditoria, Metricas, Contenido, Audiencia, Comparativas, Insights, Recomendaciones, Reportes, Integraciones y Configuracion como vistas de navegacion independientes.
 
 ## Estado de implementacion
 
-El MVP cubre parcialmente RF-001, RF-002, RF-003, RF-004, RF-005, RF-006, RF-008, RF-012, RF-014, RF-015 y RF-019 usando datos demo locales. El resto queda pendiente para fases posteriores.
+La experiencia frontend v0.2.0 cubre RF-023 y cubre parcialmente RF-001 a RF-015, RF-019 y RF-020 usando datos demo locales. RF-016 a RF-018 y RF-021 requieren backend, persistencia y APIs oficiales. RF-022 se cumple por diseno y documentacion.

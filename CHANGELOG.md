@@ -4,6 +4,37 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.2.0] - 2026-09-15
+
+### Added
+
+- Enrutamiento interno para once vistas independientes.
+- Modulos demostrativos de Audiencia, Comparativas y Configuracion.
+- Metricas ampliadas de impresiones, interacciones, vistas de video, CTR, frecuencia y promedios.
+- Filtros de cuenta, tematica, campana y rendimiento, junto con ordenamiento de publicaciones.
+- Comparativas normalizadas entre plataformas y periodos.
+- Insights estructurados en dato, interpretacion, hipotesis, impacto y recomendacion.
+- Reporte ejecutivo imprimible y descargable en HTML.
+- Tres pruebas nuevas para filtros, patrones de contenido y comparativas.
+
+### Changed
+
+- El dashboard monolitico fue reemplazado por una aplicacion de vistas separadas mediante rutas hash.
+- La interfaz fue redisenada para escritorio y movil con controles y tablas de dimensiones estables.
+- Los estados demostrativos y las limitaciones de APIs se muestran de forma explicita.
+
+### Fixed
+
+- Auditoria, Metricas, Contenido e Insights ya no aparecen apilados dentro de la misma pantalla.
+
+### Removed
+
+- Navegacion por anclas hacia secciones de una unica pagina.
+
+### Security
+
+- Las conexiones reales permanecen deshabilitadas hasta implementar OAuth y almacenamiento seguro en backend.
+
 ## [v0.0.0] - 2026-09-14
 
 ### Added

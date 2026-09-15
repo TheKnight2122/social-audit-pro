@@ -48,12 +48,15 @@ Frontend -> Backend -> Servicio de integracion -> API social -> Procesamiento ->
 
 APIs oficiales de redes sociales. La disponibilidad de metricas depende de cada API y del nivel de permisos aprobado.
 
-## Arquitectura del MVP
+## Arquitectura del frontend v0.2.0
 
 ```mermaid
 flowchart LR
-    HTML[index.html] --> APP[src/app.js]
-    APP --> ANALYTICS[src/analytics.js]
-    APP --> DATA[src/data/sampleData.js]
+    HTML[index.html] --> ROUTER[Enrutador hash en src/app.js]
+    ROUTER --> VIEWS[Once vistas independientes]
+    VIEWS --> ANALYTICS[src/analytics.js]
+    VIEWS --> DATA[src/data/sampleData.js]
     TEST[test/analytics.test.js] --> ANALYTICS
 ```
+
+El enrutamiento por hash mantiene una sola carga de aplicacion, pero cada opcion del menu reemplaza completamente el contenido de `view-root`. Esto evita apilar modulos en una unica pagina y permite enlazar directamente rutas como `#/auditoria`, `#/metricas` y `#/contenido`.

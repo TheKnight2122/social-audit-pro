@@ -27,12 +27,14 @@ Incluye auditoria, analitica, monitoreo, insights, recomendaciones, reportes, ge
 
 ## Principales funcionalidades
 
-- Dashboard ejecutivo con salud de cuenta, KPIs, tendencias y recomendaciones.
-- Auditoria por dimensiones: presencia digital, actividad, engagement, contenido, crecimiento y rendimiento general.
-- Analisis de publicaciones, rankings de contenido y comparativas entre plataformas.
-- Deteccion de anomalias basada en comportamiento historico.
-- Reportes ejecutivos para gerencia, clientes o equipos.
-- Gestion conceptual de integraciones y ultima sincronizacion.
+- Navegacion por vistas independientes para Dashboard, Auditoria, Metricas, Contenido, Audiencia, Comparativas, Insights, Recomendaciones, Reportes, Integraciones y Configuracion.
+- Dashboard ejecutivo con salud de cuenta, KPIs, tendencias, fortalezas, problemas y acciones prioritarias.
+- Auditoria por dimensiones con reglas, ponderaciones y explicaciones visibles.
+- Analisis de publicaciones con filtros avanzados, ordenamiento, rankings y patrones por formato, tema y hora.
+- Comparacion normalizada entre plataformas y entre periodo actual y anterior.
+- Insights que separan dato observado, interpretacion, hipotesis, impacto y recomendacion.
+- Reporte ejecutivo imprimible y descargable en HTML.
+- Gestion conceptual de integraciones, usuarios y roles, claramente marcada como demostrativa.
 
 ## Tecnologias utilizadas
 
@@ -95,18 +97,21 @@ Luego abrir `http://localhost:4173`.
 
 ## Como utilizarlo
 
-El MVP muestra un dashboard con datos demo etiquetados. Permite cambiar periodo, red social, formato y nivel de rendimiento para actualizar KPIs, publicaciones, anomalias y recomendaciones.
+La aplicacion abre en el Dashboard. El menu lateral cambia entre modulos independientes y actualiza la URL interna, por ejemplo `#/auditoria` o `#/metricas`. Los filtros globales afectan a todas las vistas analiticas; Contenido agrega busqueda, tematica, campana, rendimiento y ordenamiento.
 
 ## Estado actual
 
-MVP inicial en desarrollo: documentacion formal creada, requisitos trazados y primera interfaz funcional con calculos locales sobre datos demo.
+Version `v0.2.0` en desarrollo: experiencia analitica demostrativa completa en el frontend, con once vistas independientes, calculos locales, filtros, reportes HTML y datos demo claramente identificados.
 
 ## Funcionalidades terminadas
 
 - Estructura documental profesional.
 - Formalizacion inicial de requisitos.
-- Dashboard MVP con KPIs, auditoria, publicaciones, insights y recomendaciones.
-- Pruebas unitarias de formulas principales.
+- Once vistas funcionales e independientes dentro de la aplicacion.
+- Dashboard, auditoria, metricas, contenido, audiencia, comparativas, insights, recomendaciones y reportes demostrativos.
+- Filtros globales y filtros avanzados de contenido.
+- Reporte ejecutivo imprimible y descargable en HTML.
+- Ocho pruebas unitarias del motor analitico.
 
 ## Funcionalidades pendientes
 
@@ -136,3 +141,4 @@ Documentos clave:
 
 - `v0.0.0` - Preparacion inicial de estructura documental y trazabilidad del proyecto.
 - `v0.1.0` - Formalizacion de requisitos y MVP inicial de dashboard analitico.
+- `v0.2.0` - Separacion de modulos, ampliacion analitica y reporte HTML.

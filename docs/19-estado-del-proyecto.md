@@ -14,29 +14,32 @@
 - Diseno conceptual de base de datos.
 - MVP web con dashboard, filtros, auditoria, contenido, insights, recomendaciones y reporte textual.
 - Pruebas unitarias iniciales del motor analitico.
+- Repositorio remoto conectado y sincronizado en `https://github.com/TheKnight2122/social-audit-pro`.
+- Navegacion por once vistas independientes.
+- Modulos demostrativos de audiencia, comparativas, integraciones y configuracion.
+- Reporte ejecutivo imprimible y descargable en HTML.
+- Ocho pruebas unitarias exitosas.
 
 ## En desarrollo
 
-- Conexion o creacion del repositorio remoto en GitHub.
 - Evolucion del MVP hacia backend, persistencia e integraciones reales.
 
 ## Pendiente
 
-- Crear/conectar repositorio remoto en GitHub.
 - Implementar backend/API.
 - Implementar autenticacion y autorizacion real.
 - Implementar base de datos.
 - Implementar integraciones oficiales.
-- Implementar exportacion profesional de reportes.
+- Implementar exportacion PDF.
 - Ampliar pruebas funcionales, integracion y seguridad.
 
 ## Problemas conocidos
 
-- Aun no se cuenta con URL o nombre del repositorio remoto de GitHub.
 - Los datos del MVP son demo y no provienen de APIs reales.
 - No existe persistencia real.
 - No existe control de usuarios real.
+- Los botones de conexion y administracion permanecen deshabilitados hasta contar con backend seguro.
 
 ## Proximo objetivo
 
-Conectar el repositorio remoto y continuar con el modulo backend/base de datos o con el refinamiento visual del MVP, segun prioridad del equipo.
+Implementar backend, base de datos y autenticacion por roles como siguiente fase tecnica.
