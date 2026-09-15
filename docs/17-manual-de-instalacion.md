@@ -1,17 +1,38 @@
 # Manual de instalacion
 
-## Estado
-
-Pendiente de definicion.
-
 ## Requisitos previos
 
-Pendiente de definicion.
+- Node.js 20 o superior.
+- npm.
+- Navegador moderno.
 
 ## Pasos de instalacion
 
-Pendiente de definicion.
+1. Clonar o abrir el repositorio.
+2. Ejecutar:
 
-## Verificacion de instalacion
+```bash
+npm install
+```
 
-Pendiente de definicion.
+3. Iniciar el servidor local:
+
+```bash
+npm start
+```
+
+4. Abrir:
+
+```text
+http://localhost:4173
+```
+
+## Verificacion
+
+Ejecutar:
+
+```bash
+npm test
+```
+
+Las pruebas deben finalizar correctamente.

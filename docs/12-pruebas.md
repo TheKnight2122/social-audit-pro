@@ -2,11 +2,9 @@
 
 ## Estado
 
-No existen pruebas aun porque no hay funcionalidades implementadas.
+Existen pruebas unitarias iniciales para formulas y reglas del motor analitico.
 
-## Estrategia inicial
-
-Cuando se definan tecnologias y modulos, se documentaran:
+## Estrategia
 
 - Pruebas unitarias.
 - Pruebas de integracion.
@@ -18,4 +16,10 @@ Cuando se definan tecnologias y modulos, se documentaran:
 
 ## Registro de pruebas
 
-Pendiente de definicion.
+| ID | Tipo | Objetivo | Comando | Estado |
+|---|---|---|---|---|
+| TEST-AN-001 | Unitario | Variacion porcentual | `npm test` | Implementado |
+| TEST-AN-002 | Unitario | Engagement = interacciones / alcance x 100 | `npm test` | Implementado |
+| TEST-AN-003 | Unitario | Clasificacion de rendimiento | `npm test` | Implementado |
+| TEST-AN-004 | Unitario | KPIs agregados y auditoria | `npm test` | Implementado |
+| TEST-AN-005 | Unitario | Deteccion de anomalias | `npm test` | Implementado |

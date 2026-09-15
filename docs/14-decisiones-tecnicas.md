@@ -4,4 +4,5 @@ Las decisiones tecnicas importantes se registraran tambien como ADR dentro de `d
 
 ## Decisiones registradas
 
-No hay decisiones tecnicas definitivas. La seleccion de tecnologias y arquitectura queda pendiente hasta recibir los requisitos concretos.
+- ADR-001 - Preparacion documental inicial antes del desarrollo.
+- ADR-002 - MVP inicial sin dependencias externas.

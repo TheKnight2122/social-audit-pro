@@ -1,18 +1,36 @@
 # Descripcion general
 
+## Nombre del proyecto
+
+Social Audit Pro.
+
 ## Resumen
 
-El proyecto se encuentra en fase de preparacion inicial. Aun no se han definido el nombre definitivo, problema especifico, usuarios, funcionalidades ni tecnologias.
+Social Audit Pro es una plataforma web para auditoria, analisis, monitoreo, generacion de insights, recomendaciones y reportes sobre el rendimiento de redes sociales. Su objetivo no es publicar contenido, sino ayudar a responder: que esta funcionando, que esta fallando, por que podria estar ocurriendo y que deberia mejorarse.
 
-## Proposito de este documento
+## Usuarios objetivo
 
-Servir como punto de entrada tecnico y funcional para cualquier persona que se incorpore al proyecto.
+- Empresas con presencia digital activa.
+- Agencias de marketing.
+- Community managers.
+- Analistas de social media.
+- Clientes, supervisores y gerentes que necesitan reportes ejecutivos.
 
-## Informacion pendiente
+## Redes previstas
 
-- Nombre definitivo del sistema.
-- Descripcion funcional.
-- Usuarios objetivo.
-- Contexto de uso.
-- Restricciones tecnicas.
-- Requisitos concretos.
+- Facebook.
+- Instagram.
+- TikTok.
+- LinkedIn.
+- YouTube.
+- X/Twitter.
+
+Las metricas disponibles dependeran de las APIs oficiales y del nivel de acceso concedido. El sistema debe indicar cuando una metrica no este disponible para una plataforma.
+
+## Principio central
+
+El flujo de valor del sistema es:
+
+```text
+Datos -> Analisis -> Diagnostico -> Recomendacion -> Decision
+```

@@ -2,26 +2,58 @@
 
 ## Estado
 
-Pendiente de definicion. No se ha seleccionado arquitectura porque aun no se conocen los requisitos concretos del sistema.
+Arquitectura objetivo definida. El MVP actual implementa frontend estatico modular con motor analitico local y datos demo. Las capas de backend, persistencia e integraciones se implementaran en fases posteriores.
 
-## Diagrama general preliminar
+## Diagrama general objetivo
 
 ```mermaid
 flowchart TD
-    A[Requisitos pendientes] --> B[Diseno de arquitectura]
-    B --> C[Implementacion por modulos]
-    C --> D[Pruebas]
-    D --> E[Version estable]
+    U[Usuario] --> FE[Frontend web]
+    FE --> API[Backend/API]
+    API --> AUTH[Autenticacion y autorizacion]
+    API --> ANA[Motor analitico]
+    API --> REP[Servicio de reportes]
+    API --> INT[Capa de integraciones]
+    INT --> FB[Facebook API]
+    INT --> IG[Instagram API]
+    INT --> TT[TikTok API]
+    INT --> LI[LinkedIn API]
+    INT --> YT[YouTube API]
+    INT --> X[X/Twitter API]
+    INT --> PROC[Procesamiento y normalizacion]
+    PROC --> DB[(Base de datos)]
+    ANA --> DB
+    REP --> DB
+    API --> DB
 ```
 
 ## Componentes
 
-Pendiente de definicion.
+- Frontend web: dashboard, filtros, tablas, recomendaciones, reportes e integraciones.
+- Backend/API: reglas de negocio, autorizacion, orquestacion de datos y exposicion de endpoints.
+- Capa de integracion: conectores independientes por red social.
+- Motor analitico: formulas, auditoria, deteccion de anomalias, rankings e insights.
+- Base de datos: usuarios, roles, cuentas, publicaciones, metricas, historicos, reportes y actividad.
+- Servicio de reportes: generacion de informes ejecutivos.
 
 ## Comunicacion entre modulos
 
-Pendiente de definicion.
+El flujo previsto es:
+
+```text
+Frontend -> Backend -> Servicio de integracion -> API social -> Procesamiento -> Base de datos -> Dashboard
+```
 
 ## Servicios externos
 
-Pendiente de definicion.
+APIs oficiales de redes sociales. La disponibilidad de metricas depende de cada API y del nivel de permisos aprobado.
+
+## Arquitectura del MVP
+
+```mermaid
+flowchart LR
+    HTML[index.html] --> APP[src/app.js]
+    APP --> ANALYTICS[src/analytics.js]
+    APP --> DATA[src/data/sampleData.js]
+    TEST[test/analytics.test.js] --> ANALYTICS
+```

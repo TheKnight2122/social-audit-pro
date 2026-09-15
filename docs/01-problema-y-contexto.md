@@ -2,16 +2,23 @@
 
 ## Problema
 
-Pendiente de definicion. Se completara cuando el equipo entregue el segundo prompt con el contexto del sistema.
+Las organizaciones suelen revisar metricas de redes sociales desde paneles aislados por plataforma. Esto dificulta comparar periodos, detectar problemas, interpretar cambios y convertir datos en decisiones de negocio.
 
 ## Contexto
 
-Pendiente de definicion.
+Herramientas profesionales como Sprout Social muestran el valor de centralizar analitica social, pero este proyecto se enfoca exclusivamente en auditoria, analisis, diagnostico, recomendaciones y reportes. Se excluyen publicacion automatica, programacion de contenido y bots de publicacion.
 
 ## Personas o usuarios involucrados
 
-Pendiente de definicion.
+- Administrador: gestiona usuarios, cuentas, integraciones y configuracion.
+- Analista / Social Media Manager: conecta cuentas, consulta metricas, realiza auditorias y genera reportes.
+- Cliente / Supervisor: consulta dashboards, resultados, recomendaciones y reportes.
 
 ## Necesidades identificadas
 
-Pendiente de definicion.
+- Centralizar metricas por red social.
+- Interpretar resultados, no solo mostrarlos.
+- Comparar plataformas y periodos sin conclusiones engañosas.
+- Registrar ultima sincronizacion y disponibilidad de datos.
+- Generar recomendaciones priorizadas con evidencia.
+- Mantener seguridad sobre credenciales, tokens y permisos.
