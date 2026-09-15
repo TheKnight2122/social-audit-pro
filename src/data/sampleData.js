@@ -45,7 +45,7 @@ export const sampleData = {
     { platform: "X", provider: "X API", status: "pending", account: null, freshness: null, metrics: ["seguidores", "impresiones", "interacciones"] }
   ],
   users: [
-    { name: "Antonio RT", email: "antonio@example.test", role: "Administrador", status: "Activo", lastAccess: "15/09/2026 09:12" },
+    { name: "Administrador Demo", email: "admin@example.test", role: "Administrador", status: "Activo", lastAccess: "15/09/2026 09:12" },
     { name: "Maria Analista", email: "maria@example.test", role: "Analista", status: "Activo", lastAccess: "14/09/2026 17:46" },
     { name: "Cliente Demo", email: "cliente@example.test", role: "Cliente", status: "Invitado", lastAccess: "Sin acceso" }
   ]

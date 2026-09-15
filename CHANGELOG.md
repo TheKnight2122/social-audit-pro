@@ -34,6 +34,7 @@ El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixe
 ### Security
 
 - Las conexiones reales permanecen deshabilitadas hasta implementar OAuth y almacenamiento seguro en backend.
+- Se reemplazaron datos personales usados sin autorizacion por identificadores genericos de demostracion.
 
 ## [v0.0.0] - 2026-09-14
 

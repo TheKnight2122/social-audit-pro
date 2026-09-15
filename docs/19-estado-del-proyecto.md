@@ -14,7 +14,7 @@
 - Diseno conceptual de base de datos.
 - MVP web con dashboard, filtros, auditoria, contenido, insights, recomendaciones y reporte textual.
 - Pruebas unitarias iniciales del motor analitico.
-- Repositorio remoto conectado y sincronizado en `https://github.com/TheKnight2122/social-audit-pro`.
+- Repositorio remoto `origin` conectado y sincronizado.
 - Navegacion por once vistas independientes.
 - Modulos demostrativos de audiencia, comparativas, integraciones y configuracion.
 - Reporte ejecutivo imprimible y descargable en HTML.
