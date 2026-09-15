@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { logActivity } from "../database.js";
 import { requireCsrf, requirePermission } from "../middleware.js";
+import { createReportPdf } from "../report-pdf.js";
 
 export function createReportsRouter({ database }) {
   const router = Router();
@@ -14,6 +15,32 @@ export function createReportsRouter({ database }) {
        ORDER BY r.created_at DESC LIMIT 100`
     ).all();
     response.json({ reports });
+  });
+
+  router.post("/export-pdf", requirePermission("reports:write"), requireCsrf, async (request, response, next) => {
+    try {
+      const content = request.body.content;
+      if (!content || typeof content !== "object") {
+        return response.status(400).json({ error: "validation_error", message: "El contenido del reporte es obligatorio." });
+      }
+      const title = String(request.body.title || "Reporte ejecutivo de redes sociales").slice(0, 120);
+      const pdf = await createReportPdf({
+        title,
+        platform: request.body.platform,
+        periodDays: request.body.periodDays,
+        generatedAt: new Date().toISOString(),
+        content
+      });
+      response.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="social-audit-pro-reporte.pdf"',
+        "Content-Length": String(pdf.length),
+        "Cache-Control": "no-store"
+      });
+      return response.send(pdf);
+    } catch (error) {
+      return next(error);
+    }
   });
 
   router.get("/:id", requirePermission("reports:read"), (request, response) => {

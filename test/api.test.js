@@ -4,6 +4,12 @@ import request from "supertest";
 import { createApp } from "../src/server/app.js";
 import { openDatabase } from "../src/server/database.js";
 
+function binaryParser(response, callback) {
+  const chunks = [];
+  response.on("data", (chunk) => chunks.push(chunk));
+  response.on("end", () => callback(null, Buffer.concat(chunks)));
+}
+
 test("flujo de API, autenticacion, roles, persistencia e integraciones", async (context) => {
   const database = openDatabase(":memory:");
   const app = createApp({
@@ -77,13 +83,24 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
     const users = await admin.get("/api/v1/users").expect(200);
     assert.equal(users.body.users.length, 2);
     assert.equal(users.body.users.some((user) => "passwordHash" in user), false);
+    const clientUser = users.body.users.find((user) => user.email === "client@example.test");
+
+    await admin.patch("/api/v1/users/" + clientUser.id)
+      .set("x-csrf-token", adminCsrf)
+      .send({ role: "analyst", status: "active" })
+      .expect(200);
 
     const login = await client.post("/api/v1/auth/login").send({
       email: "client@example.test",
       password: "ClienteSeguro123"
     }).expect(200);
-    assert.equal(login.body.user.role, "client");
+    assert.equal(login.body.user.role, "analyst");
     await client.get("/api/v1/users").expect(403);
+
+    await admin.patch("/api/v1/users/" + me.body.user.id)
+      .set("x-csrf-token", adminCsrf)
+      .send({ role: "client", status: "active" })
+      .expect(400);
   });
 
   await context.test("cifra configuracion e importa historicos persistentes", async () => {
@@ -154,6 +171,29 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
     assert.equal(reports.body.reports.length, 1);
     const activity = await admin.get("/api/v1/activity").expect(200);
     assert.ok(activity.body.activity.some((item) => item.action === "reports.created"));
+
+    const pdf = await admin.post("/api/v1/reports/export-pdf")
+      .set("x-csrf-token", adminCsrf)
+      .send({
+        title: "Reporte de prueba",
+        platform: "Instagram",
+        periodDays: 30,
+        content: {
+          kpis: { followers: 1200, reach: 8000, impressions: 11000, engagement: 7.25 },
+          audit: {
+            totalScore: 82,
+            label: "Muy bueno",
+            dimensions: [{ name: "Engagement", score: 82 }]
+          },
+          anomalies: [{ type: "Alcance", evidence: "Crecimiento de prueba." }],
+          recommendations: [{ priority: "Media", action: "Mantener seguimiento." }]
+        }
+      })
+      .buffer(true)
+      .parse(binaryParser)
+      .expect("Content-Type", /application\/pdf/)
+      .expect(200);
+    assert.equal(pdf.body.subarray(0, 4).toString(), "%PDF");
   });
 
   await context.test("exige CSRF para cerrar sesion", async () => {
