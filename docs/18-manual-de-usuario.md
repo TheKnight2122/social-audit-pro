@@ -2,7 +2,14 @@
 
 ## Estado
 
-Manual inicial para el MVP.
+Manual inicial para v0.3.0.
+
+## Acceso
+
+1. En una instalacion nueva, abrir Cuenta y registrar el administrador inicial.
+2. En los siguientes accesos, iniciar sesion con correo y contrasena.
+3. El Administrador puede crear usuarios desde Configuracion.
+4. Los permisos disponibles dependen del rol asignado.
 
 ## Navegacion
 
@@ -20,8 +27,15 @@ Cada opcion del menu abre una vista independiente y cambia la ruta interna del n
 8. Abrir Comparativas para contrastar plataformas y periodos.
 9. Consultar Insights y Recomendaciones para pasar del dato a la accion.
 10. Usar "Generar reporte" para abrir el informe ejecutivo.
-11. En Reportes, imprimir o descargar el informe como HTML.
+11. En Reportes, guardar el informe y descargar el PDF.
+
+## Integraciones
+
+1. Abrir Integraciones con un usuario Administrador o Analista.
+2. Seleccionar la plataforma e ingresar la identificacion y secreto de la aplicacion oficial.
+3. Guardar la configuracion; el secreto se cifra antes de persistirse.
+4. La extraccion automatica requiere todavia completar el conector OAuth de la plataforma. El endpoint de importacion permite cargar datos normalizados y conservar historicos mientras se implementan esos conectores.
 
 ## Nota importante
 
-El MVP utiliza datos demo. Las integraciones reales con APIs oficiales se implementaran en fases posteriores.
+Las vistas analiticas conservan datos demo para mostrar la experiencia completa. Usuarios, sesiones, configuracion, importaciones, historicos y reportes si usan persistencia real. La interfaz identifica el modo demo y no afirma que una API este conectada cuando no existe autorizacion OAuth.

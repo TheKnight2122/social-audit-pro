@@ -4,6 +4,35 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.3.0] - 2026-09-15
+
+### Added
+
+- API REST real con Express y endpoints versionados.
+- Persistencia SQLite con migracion para usuarios, sesiones, integraciones, cuentas, publicaciones, historicos, sincronizaciones, reportes y actividad.
+- Registro del administrador inicial, inicio y cierre de sesion y administracion de usuarios.
+- Permisos de backend para los roles Administrador, Analista y Cliente.
+- Configuracion cifrada de credenciales de integracion e importacion normalizada de datos.
+- Guardado de reportes y exportacion profesional a PDF.
+- Pruebas de integracion de API con Supertest.
+
+### Changed
+
+- Configuracion e Integraciones consumen el backend en lugar de mostrar solo controles demostrativos.
+- La vista de cuenta permite configurar la primera instalacion y administrar la sesion.
+
+### Fixed
+
+- El cambio de ruta vuelve al inicio de cada vista para evitar conservar una posicion de desplazamiento incorrecta.
+- La paginacion del PDF evita paginas vacias y contenido fuera del area imprimible.
+
+### Security
+
+- Contrasenas derivadas con `scrypt` y salt individual.
+- Sesiones con cookie `HttpOnly`, `SameSite=Strict`, expiracion y token CSRF.
+- Credenciales cifradas con AES-256-GCM.
+- Cabeceras CSP, `nosniff`, politica de referencia y proteccion de origen.
+
 ## [v0.2.0] - 2026-09-15
 
 ### Added

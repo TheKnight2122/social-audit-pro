@@ -15,17 +15,23 @@
 npm install
 ```
 
-3. Iniciar el servidor local:
+3. Copiar `.env.example` como `.env` y definir al menos un `TOKEN_ENCRYPTION_KEY` largo y aleatorio.
+
+4. Iniciar el servidor local:
 
 ```bash
 npm start
 ```
 
-4. Abrir:
+5. Abrir:
 
 ```text
 http://localhost:4173
 ```
+
+6. En la primera instalacion, abrir `http://localhost:4173/#/cuenta` y crear el administrador inicial.
+
+La base se crea por defecto en `data/social-audit-pro.sqlite`. No debe versionarse.
 
 ## Verificacion
 

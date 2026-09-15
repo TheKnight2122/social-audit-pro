@@ -14,7 +14,7 @@
 - Integraciones: conexion con APIs oficiales y control de sincronizaciones.
 - Configuracion: usuarios, roles, permisos y parametros.
 
-## Modulos implementados en la experiencia demostrativa
+## Modulos implementados
 
 - Dashboard: resumen ejecutivo, KPIs, salud, tendencias, fortalezas, problemas y acciones.
 - Auditoria: puntuacion 0-100, seis dimensiones y metodologia visible.
@@ -24,14 +24,14 @@
 - Comparativas: plataformas y periodo actual contra anterior.
 - Insights: dato, interpretacion, hipotesis, impacto y recomendacion.
 - Recomendaciones: agrupacion por prioridad.
-- Reportes: vista ejecutiva, impresion y descarga HTML.
-- Integraciones: estado y cobertura demostrativa, sin OAuth real.
-- Configuracion: usuarios, roles, permisos y escala demostrativos.
+- Reportes: vista ejecutiva, persistencia y descarga PDF.
+- Integraciones: configuracion cifrada e importacion de cuentas, publicaciones e historicos.
+- Configuracion: usuarios, roles y permisos respaldados por API.
+- Cuenta: instalacion inicial, login, sesion y logout.
 
 ## Modulos pendientes
 
-- Backend/API.
-- Persistencia.
-- Autenticacion y roles reales.
-- Integraciones oficiales.
-- Exportacion PDF.
+- Autorizacion OAuth y renovacion de tokens por plataforma.
+- Extraccion automatica y sincronizacion programada con APIs oficiales.
+- Alimentacion completa de todas las vistas desde la base persistente.
+- Aislamiento multiempresa y despliegue productivo endurecido.

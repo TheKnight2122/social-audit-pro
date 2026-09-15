@@ -37,3 +37,14 @@ Cada incidencia debera incluir:
 - Solucion: reutilizar la instancia activa sin finalizar procesos.
 - Archivos afectados: ninguno.
 - Estado: resuelta durante la verificacion.
+
+### INC-003 - Paginacion incorrecta del reporte PDF
+
+- Fecha: 2026-09-15.
+- Descripcion: el primer prototipo generaba paginas adicionales y titulos fuera de posicion.
+- Severidad: media.
+- Causa: el cursor automatico de PDFKit se combinaba con coordenadas parciales y el pie excedia el area de contenido.
+- Diagnostico: el render de control produjo seis paginas para un informe que debia ocupar dos.
+- Solucion: fijar coordenadas y anchos, reservar espacio para el pie y controlar los saltos de pagina.
+- Archivos afectados: `src/server/report-pdf.js`.
+- Estado: resuelta en v0.3.0 y validada mediante render PNG.

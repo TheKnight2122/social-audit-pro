@@ -2,21 +2,20 @@
 
 ## Estado
 
-Diseno conceptual inicial. El MVP aun no implementa persistencia real.
+Persistencia SQLite implementada mediante `better-sqlite3`. La migracion `migrations/001-initial.sql` se aplica al abrir la base y activa claves foraneas y modo WAL.
 
 ## Entidades principales
 
 - users: usuarios del sistema.
 - roles: roles y permisos.
-- social_networks: redes sociales soportadas.
+- sessions: sesiones autenticadas con hash del token y expiracion.
+- social_platforms: redes sociales soportadas.
+- integrations: configuracion y secretos cifrados por plataforma.
 - social_accounts: cuentas conectadas o importadas.
 - posts: publicaciones analizadas.
-- metrics: metricas historicas por cuenta, publicacion y periodo.
-- periods: rangos de analisis.
-- audits: resultados de auditoria.
-- recommendations: recomendaciones generadas.
+- metric_snapshots: metricas historicas por cuenta y fecha.
 - reports: reportes ejecutivos.
-- sync_jobs: sincronizaciones con APIs.
+- sync_runs: ejecuciones de importacion o sincronizacion.
 - activity_logs: registro de acciones relevantes.
 
 ## Relaciones
@@ -37,10 +36,14 @@ erDiagram
     USERS ||--o{ ACTIVITY_LOGS : creates
 ```
 
-## Restricciones iniciales
+## Restricciones implementadas
 
 - No guardar contrasenas de redes sociales.
 - Tokens de API cifrados.
 - Historicos preservados por periodo.
 - Evitar duplicidad usando identificadores externos por red social y cuenta.
 - Registrar fecha de ultima sincronizacion.
+- Eliminar sesiones relacionadas al eliminar un usuario.
+- Aplicar unicidad a correo, plataforma e identificadores externos.
+
+Los resultados de auditoria y recomendaciones se guardan actualmente dentro del contenido JSON de cada reporte. Su normalizacion en tablas propias queda prevista para una fase posterior.

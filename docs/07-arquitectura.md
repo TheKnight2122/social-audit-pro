@@ -2,7 +2,7 @@
 
 ## Estado
 
-Arquitectura objetivo definida. El MVP actual implementa frontend estatico modular con motor analitico local y datos demo. Las capas de backend, persistencia e integraciones se implementaran en fases posteriores.
+Arquitectura por capas implementada en v0.3.0 para frontend, API, autenticacion, persistencia, analitica y reportes. La capa de integraciones soporta configuracion cifrada e importacion persistente; los conectores OAuth oficiales siguen en desarrollo.
 
 ## Diagrama general objetivo
 
@@ -48,15 +48,21 @@ Frontend -> Backend -> Servicio de integracion -> API social -> Procesamiento ->
 
 APIs oficiales de redes sociales. La disponibilidad de metricas depende de cada API y del nivel de permisos aprobado.
 
-## Arquitectura del frontend v0.2.0
+## Arquitectura implementada v0.3.0
 
 ```mermaid
 flowchart LR
-    HTML[index.html] --> ROUTER[Enrutador hash en src/app.js]
-    ROUTER --> VIEWS[Once vistas independientes]
-    VIEWS --> ANALYTICS[src/analytics.js]
-    VIEWS --> DATA[src/data/sampleData.js]
-    TEST[test/analytics.test.js] --> ANALYTICS
+    HTML[index.html] --> ROUTER[src/app.js]
+    ROUTER --> API[Express /api/v1]
+    API --> AUTH[Sesiones y permisos]
+    API --> DB[(SQLite)]
+    API --> PDF[PDFKit]
+    ROUTER --> ANALYTICS[src/analytics.js]
+    ROUTER --> DEMO[src/data/sampleData.js]
+    TEST[test unitarios y API] --> API
+    TEST --> ANALYTICS
 ```
 
 El enrutamiento por hash mantiene una sola carga de aplicacion, pero cada opcion del menu reemplaza completamente el contenido de `view-root`. Esto evita apilar modulos en una unica pagina y permite enlazar directamente rutas como `#/auditoria`, `#/metricas` y `#/contenido`.
+
+El backend se crea desde `src/server/app.js`; `server.js` solo carga el entorno, abre la base y administra el ciclo de vida. Las rutas se separan por autenticacion, usuarios, integraciones, analitica y reportes. Esta estructura permite probar la API en memoria sin iniciar un puerto real.

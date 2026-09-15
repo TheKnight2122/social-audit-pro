@@ -30,17 +30,17 @@ Estado: completada inicial.
 
 ## Fase 3 - Desarrollo base
 
-Estado: en progreso.
+Estado: completada inicial.
 
 - Inicializar estructura tecnica del proyecto. Estado: completado.
 - Configurar entorno. Estado: completado.
 - Configurar pruebas. Estado: completado inicial.
-- Implementar backend/API. Estado: pendiente.
-- Implementar persistencia. Estado: pendiente.
+- Implementar backend/API. Estado: completado inicial.
+- Implementar persistencia. Estado: completado inicial con SQLite.
 
 ## Fase 4 - Desarrollo de modulos
 
-Estado: experiencia frontend demostrativa completada; implementacion con datos reales pendiente.
+Estado: frontend completado; servicios transversales reales y migracion de datos por modulo en progreso.
 
 - Dashboard. Estado: demo funcional.
 - Auditoria. Estado: demo funcional.
@@ -50,21 +50,21 @@ Estado: experiencia frontend demostrativa completada; implementacion con datos r
 - Comparativas. Estado: demo funcional.
 - Insights. Estado: demo funcional.
 - Recomendaciones. Estado: demo funcional.
-- Reportes. Estado: HTML funcional; PDF pendiente.
-- Integraciones. Estado: interfaz demostrativa; APIs pendientes.
-- Configuracion. Estado: interfaz demostrativa; backend pendiente.
+- Reportes. Estado: persistencia y PDF funcionales.
+- Integraciones. Estado: configuracion cifrada e importacion funcionales; OAuth pendiente.
+- Configuracion. Estado: usuarios y roles funcionales contra backend.
 
 ## Fase 5 - Integracion
 
-Estado: pendiente.
+Estado: en progreso.
 
-- Integrar modulos y servicios.
+- Integrar modulos y servicios. Estado: backend, autenticacion y PDF integrados; conectores oficiales pendientes.
 
 ## Fase 6 - Pruebas
 
-Estado: pendiente.
+Estado: en progreso.
 
-- Ejecutar pruebas unitarias, integracion, funcionales y seguridad basica.
+- Ejecutar pruebas unitarias, integracion, funcionales y seguridad basica. Estado: 15 pruebas automatizadas y QA visual inicial completadas.
 
 ## Fase 7 - Correcciones
 

@@ -18,28 +18,35 @@
 - Navegacion por once vistas independientes.
 - Modulos demostrativos de audiencia, comparativas, integraciones y configuracion.
 - Reporte ejecutivo imprimible y descargable en HTML.
-- Ocho pruebas unitarias exitosas.
+- Backend Express y API REST versionada.
+- Base SQLite persistente con migracion inicial.
+- Registro, login, logout, sesiones, roles y permisos reales.
+- Configuracion real de usuarios e integraciones.
+- Cifrado de secretos y registro de actividad.
+- Importacion persistente de cuentas, publicaciones e historicos.
+- Guardado de reportes y exportacion PDF profesional.
+- Quince pruebas automatizadas exitosas.
 
 ## En desarrollo
 
-- Evolucion del MVP hacia backend, persistencia e integraciones reales.
+- Conectores OAuth y sincronizacion automatizada con APIs oficiales.
+- Sustitucion progresiva de datos demo analiticos por consultas persistentes.
 
 ## Pendiente
 
-- Implementar backend/API.
-- Implementar autenticacion y autorizacion real.
-- Implementar base de datos.
-- Implementar integraciones oficiales.
-- Implementar exportacion PDF.
-- Ampliar pruebas funcionales, integracion y seguridad.
+- Registrar aplicaciones y credenciales aprobadas en cada red social.
+- Implementar OAuth, renovacion de tokens y sincronizacion programada por proveedor.
+- Agregar aislamiento por organizacion y cuenta.
+- Ampliar pruebas funcionales, de seguridad y de conectores.
+- Preparar infraestructura y gestion de secretos para produccion.
 
 ## Problemas conocidos
 
 - Los datos del MVP son demo y no provienen de APIs reales.
-- No existe persistencia real.
-- No existe control de usuarios real.
-- Los botones de conexion y administracion permanecen deshabilitados hasta contar con backend seguro.
+- Las vistas analiticas principales todavia parten del conjunto demo local.
+- La configuracion de una integracion no equivale a una autorizacion OAuth completa.
+- No hay tareas programadas de sincronizacion ni renovacion automatica de tokens.
 
 ## Proximo objetivo
 
-Implementar backend, base de datos y autenticacion por roles como siguiente fase tecnica.
+Implementar el primer conector OAuth oficial y alimentar el dashboard desde sus historicos persistidos.

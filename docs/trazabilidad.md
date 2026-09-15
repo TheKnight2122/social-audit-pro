@@ -17,12 +17,12 @@ La matriz relaciona requisitos, modulos, implementacion, pruebas y estado.
 | RF-012 | Insights | `detectAnomalies` | TEST-AN-005 | Parcial demo |
 | RF-013 | Insights | `detectAnomalies`, `src/app.js` | TEST-AN-005, verificacion visual | Parcial demo |
 | RF-014 | Recomendaciones | `buildRecommendations`, `src/app.js` | Verificacion visual 2026-09-15 | Parcial demo |
-| RF-015 | Reportes | `buildReportHtml`, `buildDownloadDocument` | Verificacion visual 2026-09-15 | Parcial HTML |
-| RF-016 | Usuarios | Pendiente | Pendiente | Pendiente |
-| RF-017 | Roles | Pendiente | Pendiente | Pendiente |
-| RF-018 | Integraciones | Pendiente | Pendiente | Pendiente |
-| RF-019 | Sincronizacion | `sampleData.lastSync`, UI | Verificacion manual pendiente | Parcial |
+| RF-015 | Reportes | `src/server/report-pdf.js`, API y `src/app.js` | TEST-API-006, render visual | Parcial avanzado |
+| RF-016 | Usuarios | `src/server/routes/auth.js`, `users.js`, Configuracion | TEST-API-002, TEST-API-003 | Completado inicial |
+| RF-017 | Roles | `src/server/permissions.js`, middleware | TEST-API-003 | Completado inicial |
+| RF-018 | Integraciones | `src/server/routes/integrations.js` | TEST-API-004 | Parcial sin OAuth |
+| RF-019 | Sincronizacion | importacion, `sync_runs`, ultima sincronizacion | TEST-API-005 | Parcial sin programador |
 | RF-020 | Disponibilidad de metricas | `src/app.js`, `src/data/sampleData.js` | Verificacion visual 2026-09-15 | Parcial demo |
-| RF-021 | Historicos | Pendiente | Pendiente | Pendiente |
+| RF-021 | Historicos | `metric_snapshots`, `posts`, API analitica | TEST-API-005 | Parcial avanzado |
 | RF-022 | Restriccion de no publicacion | Documentacion | Revision documental | Completado documental |
 | RF-023 | Navegacion | `index.html`, enrutador de `src/app.js` | Recorrido visual de once rutas | Completado frontend |

@@ -33,18 +33,22 @@ Incluye auditoria, analitica, monitoreo, insights, recomendaciones, reportes, ge
 - Analisis de publicaciones con filtros avanzados, ordenamiento, rankings y patrones por formato, tema y hora.
 - Comparacion normalizada entre plataformas y entre periodo actual y anterior.
 - Insights que separan dato observado, interpretacion, hipotesis, impacto y recomendacion.
-- Reporte ejecutivo imprimible y descargable en HTML.
-- Gestion conceptual de integraciones, usuarios y roles, claramente marcada como demostrativa.
+- Reportes persistentes y exportacion profesional a PDF.
+- Registro, inicio y cierre de sesion con permisos por rol.
+- Gestion real de usuarios e integraciones desde el backend.
+- Importacion normalizada de cuentas, publicaciones e historicos.
 
 ## Tecnologias utilizadas
 
-- HTML, CSS y JavaScript modular para el MVP inicial.
-- Node.js para servidor local y pruebas automatizadas.
-- `node:test` para pruebas unitarias de formulas e insights.
+- HTML, CSS y JavaScript modular para el frontend.
+- Node.js y Express para el servidor y la API REST.
+- SQLite con `better-sqlite3` para persistencia local.
+- PDFKit para reportes PDF.
+- `node:test` y Supertest para pruebas unitarias y de API.
 
 ## Arquitectura general
 
-La arquitectura objetivo separa frontend, backend, servicios de integracion, procesamiento analitico y base de datos. El MVP actual implementa la capa visual y analitica inicial con datos demo controlados. Ver `docs/07-arquitectura.md`.
+La aplicacion separa frontend, API, autenticacion, persistencia, analitica y reportes. La capa de integraciones ya almacena configuracion cifrada e importa datos normalizados; los flujos OAuth y la consulta automatica de APIs oficiales siguen pendientes de credenciales aprobadas. Ver `docs/07-arquitectura.md`.
 
 ## Estructura de carpetas
 
@@ -59,6 +63,7 @@ La arquitectura objetivo separa frontend, backend, servicios de integracion, pro
 ├── src/
 │   ├── analytics.js
 │   ├── app.js
+│   ├── server/
 │   ├── styles.css
 │   └── data/
 ├── test/
@@ -81,7 +86,7 @@ La arquitectura objetivo separa frontend, backend, servicios de integracion, pro
 npm install
 ```
 
-El proyecto no requiere dependencias externas en esta primera version, pero el comando mantiene el flujo estandar de Node.js.
+Copiar `.env.example` a `.env` y reemplazar `TOKEN_ENCRYPTION_KEY` por un secreto aleatorio largo antes de cargar credenciales reales.
 
 ## Configuracion
 
@@ -97,11 +102,11 @@ Luego abrir `http://localhost:4173`.
 
 ## Como utilizarlo
 
-La aplicacion abre en el Dashboard. El menu lateral cambia entre modulos independientes y actualiza la URL interna, por ejemplo `#/auditoria` o `#/metricas`. Los filtros globales afectan a todas las vistas analiticas; Contenido agrega busqueda, tematica, campana, rendimiento y ordenamiento.
+En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues se puede iniciar sesion, administrar usuarios, configurar integraciones, consultar las vistas analiticas y generar reportes PDF.
 
 ## Estado actual
 
-Version `v0.2.0` en desarrollo: experiencia analitica demostrativa completa en el frontend, con once vistas independientes, calculos locales, filtros, reportes HTML y datos demo claramente identificados.
+Version `v0.3.0` en desarrollo: frontend analitico, API real, persistencia SQLite, autenticacion, roles, configuracion cifrada, historicos importados y exportacion PDF. Los conectores OAuth oficiales aun no realizan extraccion automatica.
 
 ## Funcionalidades terminadas
 
@@ -110,17 +115,21 @@ Version `v0.2.0` en desarrollo: experiencia analitica demostrativa completa en e
 - Once vistas funcionales e independientes dentro de la aplicacion.
 - Dashboard, auditoria, metricas, contenido, audiencia, comparativas, insights, recomendaciones y reportes demostrativos.
 - Filtros globales y filtros avanzados de contenido.
-- Reporte ejecutivo imprimible y descargable en HTML.
-- Ocho pruebas unitarias del motor analitico.
+- API REST versionada bajo `/api/v1`.
+- Base de datos SQLite y migracion inicial.
+- Registro inicial, login, sesiones, CSRF y permisos para Administrador, Analista y Cliente.
+- Usuarios, integraciones, historicos, publicaciones, reportes y actividad persistentes.
+- Credenciales de integracion cifradas en reposo.
+- Reporte ejecutivo descargable en PDF.
+- Quince pruebas automatizadas exitosas.
 
 ## Funcionalidades pendientes
 
-- Backend real.
-- Base de datos persistente.
-- Autenticacion y autorizacion reales.
-- Integraciones oficiales con APIs de redes sociales.
-- Generacion/exportacion real de reportes.
-- Cifrado y almacenamiento seguro de tokens.
+- Flujos OAuth y conectores de lectura para las APIs oficiales.
+- Renovacion automatica de tokens y sincronizacion programada.
+- Sustituir los datos demo del dashboard por consultas completas a los historicos persistidos.
+- Aislamiento de datos por organizacion/cliente.
+- Endurecimiento para despliegue publico, recuperacion de contrasena y segundo factor.
 
 ## Documentacion
 
@@ -142,3 +151,4 @@ Documentos clave:
 - `v0.0.0` - Preparacion inicial de estructura documental y trazabilidad del proyecto.
 - `v0.1.0` - Formalizacion de requisitos y MVP inicial de dashboard analitico.
 - `v0.2.0` - Separacion de modulos, ampliacion analitica y reporte HTML.
+- `v0.3.0` - Backend, persistencia, autenticacion, roles, integraciones configurables y PDF.

@@ -28,4 +28,4 @@
 
 ## Estado de implementacion
 
-La experiencia frontend v0.2.0 cubre RF-023 y cubre parcialmente RF-001 a RF-015, RF-019 y RF-020 usando datos demo locales. RF-016 a RF-018 y RF-021 requieren backend, persistencia y APIs oficiales. RF-022 se cumple por diseno y documentacion.
+La version v0.3.0 cubre RF-016 y RF-017 de forma funcional inicial, y avanza RF-015, RF-018, RF-019 y RF-021 mediante reportes PDF, configuracion cifrada, importacion e historicos persistentes. RF-018 y RF-019 siguen parciales hasta completar OAuth y sincronizacion automatica con cada API oficial. RF-023 esta completado en frontend y RF-022 se cumple por diseno.
