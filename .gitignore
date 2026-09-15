@@ -1,0 +1,42 @@
+# Dependencias
+node_modules/
+vendor/
+.venv/
+venv/
+env/
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Build y salida generada
+dist/
+build/
+coverage/
+out/
+target/
+
+# Cache
+.cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# IDE y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Archivos locales de Codex
+work/
+outputs/
