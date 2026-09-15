@@ -29,7 +29,14 @@ const state = {
   topic: "all",
   campaign: "all",
   search: "",
-  sort: "engagement-desc"
+  sort: "engagement-desc",
+  user: null,
+  csrfToken: null,
+  needsInitialAdmin: false,
+  authReady: false,
+  users: null,
+  persistedIntegrations: null,
+  savedReports: null
 };
 
 const routes = {
@@ -98,6 +105,12 @@ const routes = {
     title: "Configuracion",
     description: "Usuarios, roles, permisos y reglas del sistema.",
     render: renderSettingsPage
+  },
+  cuenta: {
+    eyebrow: "Acceso seguro",
+    title: "Cuenta",
+    description: "Registro inicial, inicio de sesion y control de la sesion activa.",
+    render: renderAccountPage
   }
 };
 
@@ -114,8 +127,60 @@ const elements = {
   eyebrow: document.querySelector("#page-eyebrow"),
   description: document.querySelector("#page-description"),
   reportShortcut: document.querySelector("#report-shortcut"),
+  authArea: document.querySelector("#auth-area"),
   status: document.querySelector("#app-status")
 };
+
+async function apiRequest(path, options = {}) {
+  const headers = { Accept: "application/json", ...(options.headers || {}) };
+  const method = String(options.method || "GET").toUpperCase();
+  if (options.body && typeof options.body !== "string") {
+    headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(options.body);
+  }
+  if (!["GET", "HEAD"].includes(method) && state.csrfToken) {
+    headers["x-csrf-token"] = state.csrfToken;
+  }
+  const response = await fetch("/api/v1" + path, {
+    ...options,
+    method,
+    headers,
+    credentials: "same-origin"
+  });
+  if (response.status === 204) return null;
+  const payload = await response.json().catch(function () { return {}; });
+  if (!response.ok) {
+    const error = new Error(payload.message || (payload.details || []).join(" ") || "No se pudo completar la operacion.");
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+  return payload;
+}
+
+function can(permission) {
+  return Boolean(state.user && state.user.permissions.includes(permission));
+}
+
+async function bootstrapAuth() {
+  try {
+    const setup = await apiRequest("/auth/setup");
+    state.needsInitialAdmin = setup.needsInitialAdmin;
+    if (!setup.needsInitialAdmin) {
+      try {
+        const session = await apiRequest("/auth/me");
+        state.user = session.user;
+        state.csrfToken = session.csrfToken;
+      } catch (error) {
+        if (error.status !== 401) throw error;
+      }
+    }
+  } catch {
+    state.needsInitialAdmin = false;
+  } finally {
+    state.authReady = true;
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -335,27 +400,68 @@ function renderRecommendationsPage(data) {
 }
 
 function renderReportsPage(data) {
-  return '<section class="report-actions"><div><strong>Reporte de auditoria y rendimiento</strong><span>Periodo de ' + escapeHtml(state.period) + ' dias · ' + escapeHtml(state.platform === "all" ? "Todas las redes" : state.platform) + '</span></div><div><button id="print-report" class="secondary-button" type="button">Imprimir</button><button id="download-report" class="primary-button" type="button">Descargar HTML</button></div></section>' +
+  const saveButton = can("reports:write") ? '<button id="save-report" class="secondary-button" type="button">Guardar en sistema</button>' : "";
+  const pdfButton = can("reports:write") ? '<button id="download-pdf" class="primary-button" type="button">Descargar PDF</button>' : "";
+  return '<section class="report-actions"><div><strong>Reporte de auditoria y rendimiento</strong><span>Periodo de ' + escapeHtml(state.period) + ' dias · ' + escapeHtml(state.platform === "all" ? "Todas las redes" : state.platform) + '</span></div><div>' + saveButton + '<button id="print-report" class="secondary-button" type="button">Imprimir</button><button id="download-report" class="secondary-button" type="button">Descargar HTML</button>' + pdfButton + '</div></section><div id="report-message" class="form-message" hidden></div>' +
     '<article id="report-document" class="report-document">' + buildReportHtml(data) + "</article>";
 }
 
 function renderIntegrationsPage() {
-  return '<section class="integration-grid">' + sampleData.integrations.map(function (integration) {
-    const isDemo = integration.status === "demo";
-    const status = isDemo ? "Datos demo" : "Sin conectar";
-    return '<article class="integration-card"><div class="integration-top"><span class="platform-mark">' + escapeHtml(integration.platform.slice(0, 2).toUpperCase()) + '</span><div><h2>' + escapeHtml(integration.platform) + "</h2><p>" + escapeHtml(integration.provider) + '</p></div><span class="connection-status ' + (isDemo ? "demo" : "pending") + '">' + status + '</span></div><div class="integration-account"><span>Cuenta</span><strong>' + escapeHtml(integration.account || "Ninguna cuenta conectada") + '</strong></div><div class="tag-list">' + integration.metrics.map(function (metric) { return "<span>" + escapeHtml(metric) + "</span>"; }).join("") + '</div><div class="integration-footer"><small>' + (isDemo ? "Actualizacion simulada hace " + integration.freshness : "Requiere OAuth y permisos oficiales") + '</small><button type="button" class="secondary-button" disabled>' + (isDemo ? "Configurar API real" : "Conectar") + "</button></div></article>";
-  }).join("") + '</section><section class="info-banner"><strong>Conexion oficial pendiente</strong><p>Los botones permanecen deshabilitados hasta configurar las credenciales OAuth en el backend. Social Audit Pro nunca solicita ni almacena contrasenas de redes sociales.</p></section>';
+  const persisted = state.persistedIntegrations || [];
+  const cards = sampleData.integrations.map(function (integration) {
+    const slug = integration.platform === "X" ? "x" : integration.platform.toLowerCase();
+    const real = persisted.find(function (item) { return item.platform === slug; });
+    const configured = real && real.status !== "not_configured";
+    const status = configured ? real.status : "Sin configurar";
+    return '<article class="integration-card"><div class="integration-top"><span class="platform-mark">' + escapeHtml(integration.platform.slice(0, 2).toUpperCase()) + '</span><div><h2>' + escapeHtml(integration.platform) + "</h2><p>" + escapeHtml(integration.provider) + '</p></div><span class="connection-status ' + (configured ? "demo" : "pending") + '">' + escapeHtml(status) + '</span></div><div class="integration-account"><span>Configuracion persistente</span><strong>' + (configured ? escapeHtml(real.displayName || "Credenciales almacenadas") : "No configurada") + '</strong></div><div class="tag-list">' + integration.metrics.map(function (metric) { return "<span>" + escapeHtml(metric) + "</span>"; }).join("") + '</div><div class="integration-footer"><small>' + (real && real.lastSyncAt ? "Ultima sincronizacion: " + escapeHtml(real.lastSyncAt) : "Sin sincronizacion oficial") + '</small></div></article>';
+  }).join("");
+  const configuration = can("integrations:write")
+    ? '<section class="panel"><div class="panel-header"><div><p class="eyebrow">Credenciales OAuth</p><h2>Configurar integracion</h2></div></div><form id="integration-form" class="form-grid"><label>Plataforma<select name="platform" required><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option><option value="x">X / Twitter</option></select></label><label>Nombre interno<input name="displayName" required maxlength="80" placeholder="Cuenta corporativa" /></label><label>Client ID<input name="clientId" required autocomplete="off" /></label><label>Client secret<input name="clientSecret" type="password" required minlength="8" autocomplete="new-password" /></label><div class="form-actions"><button class="primary-button" type="submit">Guardar cifrado</button></div></form><div id="integration-message" class="form-message" hidden></div></section>'
+    : '<section class="info-banner"><strong>Acceso protegido</strong><p>Inicia sesion con rol Administrador o Analista para configurar credenciales. Nunca se solicitan contrasenas de redes sociales.</p></section>';
+  return configuration + '<section class="integration-grid">' + cards + '</section><section class="info-banner"><strong>OAuth oficial pendiente de credenciales</strong><p>El backend ya cifra y persiste la configuracion. La autorizacion final depende de registrar este proyecto y obtener permisos en cada plataforma.</p></section>';
 }
 
 function renderSettingsPage() {
-  return '<section class="settings-layout"><article class="panel">' + panelHeader("Acceso", "Usuarios y roles", '<button class="secondary-button" type="button" disabled>Agregar usuario</button>') +
-    '<div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Ultimo acceso</th></tr></thead><tbody>' +
-    sampleData.users.map(function (user) { return "<tr><td><strong>" + escapeHtml(user.name) + "</strong></td><td>" + escapeHtml(user.email) + "</td><td>" + escapeHtml(user.role) + "</td><td><span class=\"status active\">" + escapeHtml(user.status) + "</span></td><td>" + escapeHtml(user.lastAccess) + "</td></tr>"; }).join("") +
-    '</tbody></table></div><p class="form-note">Vista demostrativa. La gestion real de sesiones y permisos se habilitara con el backend de autenticacion.</p></article>' +
+  if (!state.user) {
+    return '<section class="info-banner"><strong>Configuracion protegida</strong><p>Debes iniciar sesion para consultar usuarios y permisos persistentes.</p><a class="inline-link" href="#/cuenta">Ir a inicio de sesion</a></section>' + renderPermissionMatrix();
+  }
+  const userRows = state.users
+    ? state.users.map(function (user) {
+        const roleControl = can("users:manage")
+          ? '<select class="compact-select" data-user-role="' + user.id + '"><option value="admin"' + (user.role === "admin" ? " selected" : "") + '>Administrador</option><option value="analyst"' + (user.role === "analyst" ? " selected" : "") + '>Analista</option><option value="client"' + (user.role === "client" ? " selected" : "") + '>Cliente</option></select>'
+          : escapeHtml(user.roleName);
+        const statusControl = can("users:manage")
+          ? '<select class="compact-select" data-user-status="' + user.id + '"><option value="active"' + (user.status === "active" ? " selected" : "") + '>Activo</option><option value="disabled"' + (user.status === "disabled" ? " selected" : "") + '>Deshabilitado</option></select>'
+          : '<span class="status active">' + escapeHtml(user.status) + "</span>";
+        const action = can("users:manage") ? '<button class="secondary-button user-save" data-user-id="' + user.id + '" type="button">Guardar</button>' : "";
+        return "<tr><td><strong>" + escapeHtml(user.displayName) + "</strong></td><td>" + escapeHtml(user.email) + "</td><td>" + roleControl + "</td><td>" + statusControl + "</td><td>" + escapeHtml(user.lastLoginAt || "Sin acceso") + "</td><td>" + action + "</td></tr>";
+      }).join("")
+    : '<tr><td colspan="6">Cargando usuarios...</td></tr>';
+  const userForm = can("users:manage")
+    ? '<article class="panel">' + panelHeader("Alta segura", "Crear usuario") + '<form id="user-form" class="form-grid"><label>Nombre<input name="displayName" required minlength="2" maxlength="80" /></label><label>Correo<input name="email" type="email" required autocomplete="off" /></label><label>Contrasena temporal<input name="password" type="password" required minlength="12" autocomplete="new-password" /></label><label>Rol<select name="role"><option value="client">Cliente</option><option value="analyst">Analista</option><option value="admin">Administrador</option></select></label><div class="form-actions"><button class="primary-button" type="submit">Crear usuario</button></div></form><div id="user-message" class="form-message" hidden></div></article>'
+    : "";
+  return '<section class="settings-layout"><article class="panel">' + panelHeader("Acceso", "Usuarios y roles") +
+    '<div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Ultimo acceso</th><th>Accion</th></tr></thead><tbody>' + userRows +
+    '</tbody></table></div><p class="form-note">Los usuarios y roles se consultan desde la base de datos persistente.</p></article>' +
     '<article class="panel">' + panelHeader("Reglas", "Escala de auditoria") +
     '<div class="rule-list"><div><span>90-100</span><strong>Excelente</strong></div><div><span>80-89</span><strong>Muy bueno</strong></div><div><span>70-79</span><strong>Bueno</strong></div><div><span>60-69</span><strong>Necesita mejoras</strong></div><div><span>0-59</span><strong>Nivel critico</strong></div></div></article>' +
-    '<article class="panel">' + panelHeader("Permisos", "Matriz por rol") +
-    '<div class="table-wrap"><table><thead><tr><th>Accion</th><th>Administrador</th><th>Analista</th><th>Cliente</th></tr></thead><tbody><tr><td>Ver dashboards</td><td>Permitido</td><td>Permitido</td><td>Permitido</td></tr><tr><td>Ejecutar auditorias</td><td>Permitido</td><td>Permitido</td><td>Solo lectura</td></tr><tr><td>Gestionar integraciones</td><td>Permitido</td><td>Permitido</td><td>Restringido</td></tr><tr><td>Administrar usuarios</td><td>Permitido</td><td>Restringido</td><td>Restringido</td></tr></tbody></table></div></article></section>';
+    userForm + renderPermissionMatrix() + '</section>';
+}
+
+function renderPermissionMatrix() {
+  return '<article class="panel permission-panel">' + panelHeader("Permisos", "Matriz por rol") +
+    '<div class="table-wrap"><table><thead><tr><th>Accion</th><th>Administrador</th><th>Analista</th><th>Cliente</th></tr></thead><tbody><tr><td>Ver dashboards</td><td>Permitido</td><td>Permitido</td><td>Permitido</td></tr><tr><td>Guardar reportes</td><td>Permitido</td><td>Permitido</td><td>Solo lectura</td></tr><tr><td>Gestionar integraciones</td><td>Permitido</td><td>Permitido</td><td>Restringido</td></tr><tr><td>Administrar usuarios</td><td>Permitido</td><td>Restringido</td><td>Restringido</td></tr></tbody></table></div></article>';
+}
+
+function renderAccountPage() {
+  if (!state.authReady) return emptyState("Comprobando el estado de autenticacion.");
+  if (state.user) {
+    return '<section class="account-panel panel"><div class="account-avatar">' + escapeHtml(state.user.displayName.slice(0, 2).toUpperCase()) + '</div><div><p class="eyebrow">Sesion activa</p><h2>' + escapeHtml(state.user.displayName) + '</h2><p>' + escapeHtml(state.user.email) + ' · ' + escapeHtml(state.user.role) + '</p><div class="tag-list">' + state.user.permissions.map(function (permission) { return "<span>" + escapeHtml(permission) + "</span>"; }).join("") + '</div><button id="logout-button" class="secondary-button" type="button">Cerrar sesion</button></div></section>';
+  }
+  const initial = state.needsInitialAdmin;
+  return '<section class="auth-panel panel"><div><p class="eyebrow">' + (initial ? "Configuracion inicial" : "Acceso") + '</p><h2>' + (initial ? "Crear administrador inicial" : "Iniciar sesion") + '</h2><p>' + (initial ? "Este formulario solo esta disponible mientras no exista ningun usuario." : "Usa una cuenta registrada por un administrador.") + '</p></div><form id="auth-form" class="auth-form">' +
+    (initial ? '<label>Nombre<input name="displayName" required minlength="2" maxlength="80" autocomplete="name" /></label>' : "") +
+    '<label>Correo<input name="email" type="email" required autocomplete="email" /></label><label>Contrasena<input name="password" type="password" required minlength="12" autocomplete="' + (initial ? "new-password" : "current-password") + '" /></label><button class="primary-button" type="submit">' + (initial ? "Crear cuenta segura" : "Iniciar sesion") + '</button></form><div id="auth-message" class="form-message" hidden></div></section>';
 }
 
 function renderPostsTable(posts) {
@@ -451,8 +557,11 @@ function render() {
   elements.title.textContent = route.title;
   elements.description.textContent = route.description;
   elements.sync.textContent = "Ultima actualizacion: " + dateTime.format(new Date(sampleData.lastSync));
-  elements.filters.hidden = ["integraciones", "configuracion"].includes(routeName);
+  elements.filters.hidden = ["integraciones", "configuracion", "cuenta"].includes(routeName);
   elements.reportShortcut.hidden = routeName === "reportes";
+  elements.authArea.innerHTML = state.user
+    ? '<button id="account-button" class="account-button" type="button"><span>' + escapeHtml(state.user.displayName.slice(0, 2).toUpperCase()) + '</span><b>' + escapeHtml(state.user.role) + "</b></button>"
+    : '<button id="account-button" class="secondary-button" type="button">Iniciar sesion</button>';
   elements.navigation.querySelectorAll("a").forEach(function (link) {
     const active = link.dataset.route === routeName;
     link.classList.toggle("active", active);
@@ -461,8 +570,12 @@ function render() {
   });
   elements.root.innerHTML = route.render(data);
   bindViewEvents(routeName, data);
+  document.querySelector("#account-button").addEventListener("click", function () {
+    window.location.hash = "#/cuenta";
+  });
   document.title = route.title + " | Social Audit Pro";
   elements.status.textContent = "Vista " + route.title + " cargada";
+  hydrateRoute(routeName);
 }
 
 function bindViewEvents(routeName, data) {
@@ -489,6 +602,199 @@ function bindViewEvents(routeName, data) {
       URL.revokeObjectURL(url);
     });
     document.querySelector("#print-report").addEventListener("click", function () { window.print(); });
+    const pdfButton = document.querySelector("#download-pdf");
+    if (pdfButton) {
+      pdfButton.addEventListener("click", async function () {
+        const message = document.querySelector("#report-message");
+        try {
+          const response = await fetch("/api/v1/reports/export-pdf", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": state.csrfToken
+            },
+            body: JSON.stringify({
+              title: "Reporte ejecutivo de redes sociales",
+              platform: state.platform === "all" ? "Todas las redes" : state.platform,
+              periodDays: Number(state.period),
+              content: {
+                kpis: data.kpis,
+                audit: data.audit,
+                anomalies: data.anomalies,
+                recommendations: data.recommendations
+              }
+            })
+          });
+          if (!response.ok) {
+            const payload = await response.json();
+            throw new Error(payload.message || "No se pudo generar el PDF.");
+          }
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "social-audit-pro-reporte.pdf";
+          link.click();
+          URL.revokeObjectURL(url);
+          showMessage(message, "PDF generado correctamente.", false);
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const save = document.querySelector("#save-report");
+    if (save) {
+      save.addEventListener("click", async function () {
+        const message = document.querySelector("#report-message");
+        try {
+          await apiRequest("/reports", {
+            method: "POST",
+            body: {
+              title: "Reporte ejecutivo " + new Date().toLocaleDateString("es-PE"),
+              reportType: "executive",
+              content: {
+                periodDays: Number(state.period),
+                platform: state.platform,
+                kpis: data.kpis,
+                audit: data.audit,
+                anomalies: data.anomalies,
+                recommendations: data.recommendations
+              }
+            }
+          });
+          showMessage(message, "Reporte guardado en la base de datos.", false);
+          state.savedReports = null;
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+  }
+  if (routeName === "integraciones") {
+    const form = document.querySelector("#integration-form");
+    if (form) {
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(form));
+        const message = document.querySelector("#integration-message");
+        try {
+          await apiRequest("/integrations/" + values.platform + "/configure", {
+            method: "POST",
+            body: {
+              displayName: values.displayName,
+              clientId: values.clientId,
+              clientSecret: values.clientSecret
+            }
+          });
+          form.reset();
+          state.persistedIntegrations = null;
+          showMessage(message, "Credenciales cifradas y guardadas.", false);
+          await hydrateRoute("integraciones");
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+  }
+  if (routeName === "configuracion") {
+    const form = document.querySelector("#user-form");
+    if (form) {
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(form));
+        const message = document.querySelector("#user-message");
+        try {
+          await apiRequest("/auth/register", { method: "POST", body: values });
+          form.reset();
+          state.users = null;
+          showMessage(message, "Usuario creado correctamente.", false);
+          await hydrateRoute("configuracion");
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    document.querySelectorAll(".user-save").forEach(function (button) {
+      button.addEventListener("click", async function () {
+        const userId = button.dataset.userId;
+        const message = document.querySelector("#user-message");
+        try {
+          await apiRequest("/users/" + userId, {
+            method: "PATCH",
+            body: {
+              role: document.querySelector('[data-user-role="' + userId + '"]').value,
+              status: document.querySelector('[data-user-status="' + userId + '"]').value
+            }
+          });
+          state.users = null;
+          showMessage(message, "Usuario actualizado correctamente.", false);
+          await hydrateRoute("configuracion");
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    });
+  }
+  if (routeName === "cuenta") {
+    const form = document.querySelector("#auth-form");
+    if (form) {
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(form));
+        const message = document.querySelector("#auth-message");
+        try {
+          const endpoint = state.needsInitialAdmin ? "/auth/register" : "/auth/login";
+          const result = await apiRequest(endpoint, { method: "POST", body: values });
+          state.user = result.user;
+          state.csrfToken = result.csrfToken;
+          state.needsInitialAdmin = false;
+          state.users = null;
+          state.persistedIntegrations = null;
+          window.location.hash = "#/dashboard";
+          render();
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const logout = document.querySelector("#logout-button");
+    if (logout) {
+      logout.addEventListener("click", async function () {
+        await apiRequest("/auth/logout", { method: "POST" });
+        state.user = null;
+        state.csrfToken = null;
+        state.users = null;
+        state.persistedIntegrations = null;
+        window.location.hash = "#/dashboard";
+        render();
+      });
+    }
+  }
+}
+
+function showMessage(element, message, isError) {
+  element.hidden = false;
+  element.textContent = message;
+  element.classList.toggle("error", isError);
+}
+
+async function hydrateRoute(routeName) {
+  try {
+    if (routeName === "configuracion" && can("users:manage") && state.users === null) {
+      state.users = [];
+      const payload = await apiRequest("/users");
+      state.users = payload.users;
+      if (currentRoute() === routeName) render();
+    }
+    if (routeName === "integraciones" && state.user && state.persistedIntegrations === null) {
+      state.persistedIntegrations = [];
+      const payload = await apiRequest("/integrations");
+      state.persistedIntegrations = payload.integrations;
+      if (currentRoute() === routeName) render();
+    }
+  } catch (error) {
+    elements.status.textContent = error.message;
   }
 }
 
@@ -514,10 +820,14 @@ function bindGlobalEvents() {
   elements.reportShortcut.addEventListener("click", function () {
     window.location.hash = "#/reportes";
   });
-  window.addEventListener("hashchange", render);
+  window.addEventListener("hashchange", function () {
+    window.scrollTo({ top: 0, behavior: "auto" });
+    render();
+  });
 }
 
 updateAccountOptions();
 bindGlobalEvents();
 if (!window.location.hash) window.location.hash = "#/dashboard";
+await bootstrapAuth();
 render();
