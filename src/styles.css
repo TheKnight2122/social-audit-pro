@@ -255,6 +255,11 @@ a:focus-visible {
   font-weight: 800;
 }
 
+.online-badge {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
 .primary-button,
 .secondary-button {
   min-height: 38px;

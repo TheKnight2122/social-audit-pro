@@ -100,6 +100,10 @@ npm start
 
 Luego abrir `http://localhost:4173`.
 
+## Demostracion online
+
+El comando `npm run build` genera en `dist/` una version estatica navegable para presentar visualmente el sistema. Esta demostracion no almacena usuarios ni credenciales. El servidor local conserva la API, autenticacion y persistencia completas.
+
 ## Como utilizarlo
 
 En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues se puede iniciar sesion, administrar usuarios, configurar integraciones, consultar las vistas analiticas y generar reportes PDF.

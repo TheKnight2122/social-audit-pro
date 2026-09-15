@@ -34,6 +34,7 @@ const state = {
   csrfToken: null,
   needsInitialAdmin: false,
   authReady: false,
+  apiAvailable: true,
   users: null,
   persistedIntegrations: null,
   savedReports: null
@@ -165,6 +166,7 @@ function can(permission) {
 async function bootstrapAuth() {
   try {
     const setup = await apiRequest("/auth/setup");
+    state.apiAvailable = true;
     state.needsInitialAdmin = setup.needsInitialAdmin;
     if (!setup.needsInitialAdmin) {
       try {
@@ -176,6 +178,7 @@ async function bootstrapAuth() {
       }
     }
   } catch {
+    state.apiAvailable = false;
     state.needsInitialAdmin = false;
   } finally {
     state.authReady = true;
@@ -417,13 +420,18 @@ function renderIntegrationsPage() {
   }).join("");
   const configuration = can("integrations:write")
     ? '<section class="panel"><div class="panel-header"><div><p class="eyebrow">Credenciales OAuth</p><h2>Configurar integracion</h2></div></div><form id="integration-form" class="form-grid"><label>Plataforma<select name="platform" required><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option><option value="x">X / Twitter</option></select></label><label>Nombre interno<input name="displayName" required maxlength="80" placeholder="Cuenta corporativa" /></label><label>Client ID<input name="clientId" required autocomplete="off" /></label><label>Client secret<input name="clientSecret" type="password" required minlength="8" autocomplete="new-password" /></label><div class="form-actions"><button class="primary-button" type="submit">Guardar cifrado</button></div></form><div id="integration-message" class="form-message" hidden></div></section>'
-    : '<section class="info-banner"><strong>Acceso protegido</strong><p>Inicia sesion con rol Administrador o Analista para configurar credenciales. Nunca se solicitan contrasenas de redes sociales.</p></section>';
+    : state.apiAvailable
+      ? '<section class="info-banner"><strong>Acceso protegido</strong><p>Inicia sesion con rol Administrador o Analista para configurar credenciales. Nunca se solicitan contrasenas de redes sociales.</p></section>'
+      : '<section class="info-banner"><strong>Demostracion online</strong><p>La configuracion real de credenciales esta disponible al ejecutar el sistema local con su backend seguro.</p></section>';
   return configuration + '<section class="integration-grid">' + cards + '</section><section class="info-banner"><strong>OAuth oficial pendiente de credenciales</strong><p>El backend ya cifra y persiste la configuracion. La autorizacion final depende de registrar este proyecto y obtener permisos en cada plataforma.</p></section>';
 }
 
 function renderSettingsPage() {
   if (!state.user) {
-    return '<section class="info-banner"><strong>Configuracion protegida</strong><p>Debes iniciar sesion para consultar usuarios y permisos persistentes.</p><a class="inline-link" href="#/cuenta">Ir a inicio de sesion</a></section>' + renderPermissionMatrix();
+    const message = state.apiAvailable
+      ? '<p>Debes iniciar sesion para consultar usuarios y permisos persistentes.</p><a class="inline-link" href="#/cuenta">Ir a inicio de sesion</a>'
+      : '<p>Esta version publica muestra la matriz de permisos. La administracion real de usuarios permanece en la instalacion local.</p>';
+    return '<section class="info-banner"><strong>' + (state.apiAvailable ? "Configuracion protegida" : "Demostracion online") + '</strong>' + message + '</section>' + renderPermissionMatrix();
   }
   const userRows = state.users
     ? state.users.map(function (user) {
@@ -455,6 +463,9 @@ function renderPermissionMatrix() {
 
 function renderAccountPage() {
   if (!state.authReady) return emptyState("Comprobando el estado de autenticacion.");
+  if (!state.apiAvailable) {
+    return '<section class="info-banner"><strong>Acceso disponible en la version local</strong><p>La demostracion online permite recorrer los modulos y reportes sin almacenar usuarios ni credenciales. El registro y el inicio de sesion funcionan al abrir el proyecto localmente.</p></section>';
+  }
   if (state.user) {
     return '<section class="account-panel panel"><div class="account-avatar">' + escapeHtml(state.user.displayName.slice(0, 2).toUpperCase()) + '</div><div><p class="eyebrow">Sesion activa</p><h2>' + escapeHtml(state.user.displayName) + '</h2><p>' + escapeHtml(state.user.email) + ' · ' + escapeHtml(state.user.role) + '</p><div class="tag-list">' + state.user.permissions.map(function (permission) { return "<span>" + escapeHtml(permission) + "</span>"; }).join("") + '</div><button id="logout-button" class="secondary-button" type="button">Cerrar sesion</button></div></section>';
   }
@@ -559,7 +570,9 @@ function render() {
   elements.sync.textContent = "Ultima actualizacion: " + dateTime.format(new Date(sampleData.lastSync));
   elements.filters.hidden = ["integraciones", "configuracion", "cuenta"].includes(routeName);
   elements.reportShortcut.hidden = routeName === "reportes";
-  elements.authArea.innerHTML = state.user
+  elements.authArea.innerHTML = !state.apiAvailable
+    ? '<span class="demo-badge online-badge">Demostracion online</span>'
+    : state.user
     ? '<button id="account-button" class="account-button" type="button"><span>' + escapeHtml(state.user.displayName.slice(0, 2).toUpperCase()) + '</span><b>' + escapeHtml(state.user.role) + "</b></button>"
     : '<button id="account-button" class="secondary-button" type="button">Iniciar sesion</button>';
   elements.navigation.querySelectorAll("a").forEach(function (link) {
@@ -570,9 +583,12 @@ function render() {
   });
   elements.root.innerHTML = route.render(data);
   bindViewEvents(routeName, data);
-  document.querySelector("#account-button").addEventListener("click", function () {
-    window.location.hash = "#/cuenta";
-  });
+  const accountButton = document.querySelector("#account-button");
+  if (accountButton) {
+    accountButton.addEventListener("click", function () {
+      window.location.hash = "#/cuenta";
+    });
+  }
   document.title = route.title + " | Social Audit Pro";
   elements.status.textContent = "Vista " + route.title + " cargada";
   hydrateRoute(routeName);

@@ -15,11 +15,13 @@ El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixe
 - Configuracion cifrada de credenciales de integracion e importacion normalizada de datos.
 - Guardado de reportes y exportacion profesional a PDF.
 - Pruebas de integracion de API con Supertest.
+- Compilacion estatica para publicar una demostracion visual sin alterar el entorno local.
 
 ### Changed
 
 - Configuracion e Integraciones consumen el backend en lugar de mostrar solo controles demostrativos.
 - La vista de cuenta permite configurar la primera instalacion y administrar la sesion.
+- La interfaz distingue automaticamente la demostracion online del sistema local con backend.
 
 ### Fixed
 
