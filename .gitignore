@@ -37,6 +37,12 @@ Thumbs.db
 *.log
 logs/
 
+# Base de datos local
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
 # Archivos locales de Codex
 work/
 outputs/
