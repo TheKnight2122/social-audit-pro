@@ -1,12 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildPlatformComparison,
   calculateAudit,
   calculateKpis,
   classifyPerformance,
   detectAnomalies,
   engagementRate,
+  filterPosts,
+  getContentPattern,
   percentChange,
+  sortPosts,
+  summarizeBy,
   totalInteractions
 } from "../src/analytics.js";
 
@@ -46,4 +51,34 @@ test("detecta anomalias de alcance", () => {
   ]);
 
   assert.equal(anomalies[0].type, "Crecimiento anormal");
+  assert.match(anomalies[0].hypothesis, /pudieron/);
+});
+
+test("filtra publicaciones por cuenta, tematica y campana", () => {
+  const posts = [
+    { accountId: "a", platform: "Instagram", format: "Video", topic: "Educativo", campaign: "Marca", description: "Uno", reach: 100, likes: 10 },
+    { accountId: "b", platform: "Facebook", format: "Imagen", topic: "Venta", campaign: "Conversion", description: "Dos", reach: 100, likes: 1 }
+  ];
+  const filtered = filterPosts(posts, { platform: "all", account: "a", format: "all", performance: "all", topic: "Educativo", campaign: "Marca", search: "" });
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0].description, "Uno");
+});
+
+test("ordena y resume rendimiento de contenido", () => {
+  const posts = [
+    { format: "Video", topic: "A", hour: 20, date: "2026-09-01", description: "Bajo", reach: 100, impressions: 150, likes: 2 },
+    { format: "Video", topic: "B", hour: 21, date: "2026-09-02", description: "Alto", reach: 100, impressions: 170, likes: 20 }
+  ];
+  assert.equal(sortPosts(posts, "engagement-desc")[0].description, "Alto");
+  assert.equal(summarizeBy(posts, "format")[0].posts, 2);
+  assert.equal(getContentPattern(posts).bestFormat.name, "Video");
+});
+
+test("construye comparativa normalizada entre plataformas", () => {
+  const accounts = [{ id: "ig", platform: "Instagram", handle: "@demo", followers: 120, previousFollowers: 100 }];
+  const posts = [{ accountId: "ig", reach: 1000, impressions: 1400, likes: 80, comments: 20 }];
+  const comparison = buildPlatformComparison(accounts, posts);
+  assert.equal(comparison[0].growth, 20);
+  assert.equal(comparison[0].engagement, 10);
+  assert.equal(comparison[0].posts, 1);
 });

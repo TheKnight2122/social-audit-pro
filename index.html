@@ -3,193 +3,99 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Plataforma profesional de auditoria y analisis de redes sociales." />
     <title>Social Audit Pro</title>
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <aside class="sidebar" aria-label="Navegacion principal">
       <div class="brand">
-        <span class="brand-mark">SA</span>
+        <span class="brand-mark" aria-hidden="true">SA</span>
         <div>
           <strong>Social Audit Pro</strong>
           <small>Auditoria y analytics</small>
         </div>
       </div>
-      <nav>
-        <a href="#dashboard" class="active">Dashboard</a>
-        <a href="#auditoria">Auditoria</a>
-        <a href="#metricas">Metricas</a>
-        <a href="#contenido">Contenido</a>
-        <a href="#insights">Insights</a>
-        <a href="#recomendaciones">Recomendaciones</a>
-        <a href="#reportes">Reportes</a>
-        <a href="#integraciones">Integraciones</a>
+
+      <nav id="main-navigation">
+        <a href="#/dashboard" data-route="dashboard">Dashboard</a>
+        <a href="#/auditoria" data-route="auditoria">Auditoria</a>
+        <a href="#/metricas" data-route="metricas">Metricas</a>
+        <a href="#/contenido" data-route="contenido">Contenido</a>
+        <a href="#/audiencia" data-route="audiencia">Audiencia</a>
+        <a href="#/comparativas" data-route="comparativas">Comparativas</a>
+        <a href="#/insights" data-route="insights">Insights</a>
+        <a href="#/recomendaciones" data-route="recomendaciones">Recomendaciones</a>
+        <a href="#/reportes" data-route="reportes">Reportes</a>
+        <a href="#/integraciones" data-route="integraciones">Integraciones</a>
+        <a href="#/configuracion" data-route="configuracion">Configuracion</a>
       </nav>
+
       <div class="sidebar-note">
-        <span>Modo demo</span>
-        <p>Datos simulados para validar formulas, UX y reglas antes de conectar APIs oficiales.</p>
+        <span>Entorno demostrativo</span>
+        <p>Las cifras son simuladas. Las conexiones oficiales requieren credenciales y permisos de cada plataforma.</p>
       </div>
     </aside>
 
     <main class="app-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Auditoria multicanal</p>
-          <h1>Diagnostico ejecutivo de redes sociales</h1>
+          <p id="page-eyebrow" class="eyebrow"></p>
+          <h1 id="page-title"></h1>
+          <p id="page-description" class="page-description"></p>
         </div>
         <div class="topbar-actions">
-          <span id="last-sync" class="sync-status"></span>
-          <button id="export-report" class="primary-button">Generar reporte</button>
+          <div class="sync-block">
+            <span id="last-sync" class="sync-status"></span>
+            <span class="demo-badge">Datos demo</span>
+          </div>
+          <button id="report-shortcut" class="primary-button" type="button">Generar reporte</button>
         </div>
       </header>
 
-      <section class="filters" aria-label="Filtros de analisis">
+      <section id="global-filters" class="filters" aria-label="Filtros globales de analisis">
         <label>
           Periodo
           <select id="period-filter">
-            <option value="30">Ultimos 30 dias</option>
             <option value="7">Ultimos 7 dias</option>
+            <option value="30" selected>Ultimos 30 dias</option>
             <option value="90">Ultimos 90 dias</option>
+            <option value="180">Semestre</option>
+            <option value="365">Ultimo ano</option>
           </select>
         </label>
         <label>
           Red social
           <select id="platform-filter">
-            <option value="all">Todas</option>
+            <option value="all">Todas las redes</option>
             <option value="Instagram">Instagram</option>
             <option value="Facebook">Facebook</option>
             <option value="TikTok">TikTok</option>
             <option value="LinkedIn">LinkedIn</option>
+            <option value="YouTube">YouTube</option>
+            <option value="X">X / Twitter</option>
+          </select>
+        </label>
+        <label>
+          Cuenta
+          <select id="account-filter">
+            <option value="all">Todas las cuentas</option>
           </select>
         </label>
         <label>
           Formato
           <select id="format-filter">
-            <option value="all">Todos</option>
+            <option value="all">Todos los formatos</option>
             <option value="Video">Video</option>
             <option value="Carrusel">Carrusel</option>
             <option value="Imagen">Imagen</option>
             <option value="Texto">Texto</option>
           </select>
         </label>
-        <label>
-          Rendimiento
-          <select id="performance-filter">
-            <option value="all">Todos</option>
-            <option value="high">Alto</option>
-            <option value="medium">Medio</option>
-            <option value="low">Bajo</option>
-          </select>
-        </label>
       </section>
 
-      <section id="dashboard" class="summary-grid"></section>
-
-      <section class="content-grid">
-        <article id="auditoria" class="panel wide-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Salud de cuenta</p>
-              <h2>Evaluacion integral</h2>
-            </div>
-            <strong id="audit-score" class="score-pill"></strong>
-          </div>
-          <div id="health-bars" class="health-bars"></div>
-        </article>
-
-        <article id="metricas" class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Tendencia</p>
-              <h2>Evolucion del engagement</h2>
-            </div>
-          </div>
-          <div id="trend-chart" class="trend-chart" aria-label="Grafico de tendencia"></div>
-        </article>
-
-        <article id="insights" class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Analisis inteligente</p>
-              <h2>Hallazgos y anomalias</h2>
-            </div>
-          </div>
-          <div id="insight-list" class="stack-list"></div>
-        </article>
-      </section>
-
-      <section id="contenido" class="panel">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Contenido</p>
-            <h2>Publicaciones analizadas</h2>
-          </div>
-          <input id="post-search" type="search" placeholder="Buscar publicacion" />
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Red</th>
-                <th>Formato</th>
-                <th>Descripcion</th>
-                <th>Alcance</th>
-                <th>Interacciones</th>
-                <th>Engagement</th>
-                <th>Rendimiento</th>
-              </tr>
-            </thead>
-            <tbody id="posts-table"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="content-grid">
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Ranking</p>
-              <h2>Mejor contenido</h2>
-            </div>
-          </div>
-          <div id="top-posts" class="rank-list"></div>
-        </article>
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Riesgo</p>
-              <h2>Contenido de bajo rendimiento</h2>
-            </div>
-          </div>
-          <div id="bottom-posts" class="rank-list"></div>
-        </article>
-      </section>
-
-      <section id="recomendaciones" class="panel">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Decision</p>
-            <h2>Recomendaciones priorizadas</h2>
-          </div>
-        </div>
-        <div id="recommendations" class="recommendation-grid"></div>
-      </section>
-
-      <section id="reportes" class="panel report-panel">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Reporte ejecutivo</p>
-            <h2>Resumen generado</h2>
-          </div>
-        </div>
-        <pre id="report-output"></pre>
-      </section>
-
-      <section id="integraciones" class="panel muted-panel">
-        <h2>Integraciones previstas</h2>
-        <p>La arquitectura esta preparada para Facebook, Instagram, TikTok, LinkedIn, YouTube y X/Twitter mediante APIs oficiales. Cuando una metrica no este disponible por plataforma o nivel de acceso, el sistema debe indicarlo explicitamente.</p>
-      </section>
+      <div id="view-root" class="view-root" tabindex="-1"></div>
+      <div id="app-status" class="sr-only" aria-live="polite"></div>
     </main>
 
     <script type="module" src="./src/app.js"></script>

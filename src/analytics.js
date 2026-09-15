@@ -2,6 +2,11 @@ export function sum(values) {
   return values.reduce((total, value) => total + Number(value || 0), 0);
 }
 
+export function average(values) {
+  const numericValues = values.filter((value) => Number.isFinite(Number(value))).map(Number);
+  return numericValues.length ? sum(numericValues) / numericValues.length : 0;
+}
+
 export function percentChange(current, previous) {
   if (!previous) return current ? 100 : 0;
   return ((current - previous) / previous) * 100;
@@ -33,12 +38,27 @@ export function scoreLabel(score) {
 export function filterPosts(posts, filters) {
   return posts.filter((post) => {
     const matchesPlatform = filters.platform === "all" || post.platform === filters.platform;
+    const matchesAccount = !filters.account || filters.account === "all" || post.accountId === filters.account;
     const matchesFormat = filters.format === "all" || post.format === filters.format;
     const matchesSearch = !filters.search || post.description.toLowerCase().includes(filters.search.toLowerCase());
+    const matchesTopic = !filters.topic || filters.topic === "all" || post.topic === filters.topic;
+    const matchesCampaign = !filters.campaign || filters.campaign === "all" || post.campaign === filters.campaign;
     const performance = classifyPerformance(engagementRate(post));
-    const matchesPerformance = filters.performance === "all" || filters.performance === performance;
-    return matchesPlatform && matchesFormat && matchesSearch && matchesPerformance;
+    const matchesPerformance = !filters.performance || filters.performance === "all" || filters.performance === performance;
+    return matchesPlatform && matchesAccount && matchesFormat && matchesSearch && matchesTopic && matchesCampaign && matchesPerformance;
   });
+}
+
+export function sortPosts(posts, sortBy = "engagement-desc") {
+  const sorted = [...posts];
+  const comparators = {
+    "engagement-desc": (a, b) => engagementRate(b) - engagementRate(a),
+    "reach-desc": (a, b) => b.reach - a.reach,
+    "interactions-desc": (a, b) => totalInteractions(b) - totalInteractions(a),
+    "date-desc": (a, b) => new Date(b.date) - new Date(a.date),
+    "performance-asc": (a, b) => engagementRate(a) - engagementRate(b)
+  };
+  return sorted.sort(comparators[sortBy] || comparators["engagement-desc"]);
 }
 
 export function calculateKpis(accounts, posts) {
@@ -108,6 +128,9 @@ export function detectAnomalies(posts) {
           date: post.date,
           magnitude: reachChange,
           evidence: `${post.description} crecio ${reachChange.toFixed(1)}% frente a su referencia historica.`,
+          interpretation: "La publicacion supero ampliamente su nivel de alcance habitual.",
+          hypothesis: "El formato, el tema o la hora de publicacion pudieron favorecer la distribucion; se requiere contrastar mas publicaciones para confirmarlo.",
+          impact: "Puede revelar un patron replicable para aumentar la visibilidad organica.",
           recommendation: "Analizar formato, tema y hora de publicacion para replicar patrones positivos."
         };
       }
@@ -118,6 +141,9 @@ export function detectAnomalies(posts) {
           date: post.date,
           magnitude: reachChange,
           evidence: `${post.description} redujo su alcance ${Math.abs(reachChange).toFixed(1)}%.`,
+          interpretation: "La distribucion fue significativamente menor que la referencia historica.",
+          hypothesis: "La creatividad, segmentacion o relevancia del tema pudieron limitar el alcance; no puede atribuirse una causa unica con estos datos.",
+          impact: "Reduce la exposicion del mensaje y la oportunidad de generar interacciones.",
           recommendation: "Revisar segmentacion, creatividad y consistencia tematica antes de repetir el formato."
         };
       }
@@ -128,6 +154,9 @@ export function detectAnomalies(posts) {
           date: post.date,
           magnitude: engagement,
           evidence: `${post.description} registro ${engagement.toFixed(2)}% de engagement.`,
+          interpretation: "El contenido alcanzo usuarios, pero genero una respuesta proporcional baja.",
+          hypothesis: "La propuesta de valor o la llamada a la accion podrian no haber sido suficientemente claras.",
+          impact: "Una respuesta baja sostenida puede debilitar la eficiencia de la estrategia de contenido.",
           recommendation: "Evaluar si el contenido ofrece una llamada a la accion clara y valor para la audiencia."
         };
       }
@@ -185,4 +214,57 @@ export function buildRecommendations(kpis, anomalies, topPosts, bottomPosts) {
 export function rankPosts(posts, direction = "top") {
   const sorted = [...posts].sort((a, b) => engagementRate(b) - engagementRate(a));
   return direction === "bottom" ? sorted.reverse() : sorted;
+}
+
+export function summarizeBy(posts, field) {
+  const groups = new Map();
+  for (const post of posts) {
+    const key = post[field] || "Sin clasificar";
+    const group = groups.get(key) || [];
+    group.push(post);
+    groups.set(key, group);
+  }
+
+  return [...groups.entries()]
+    .map(([name, group]) => ({
+      name,
+      posts: group.length,
+      reach: sum(group.map((post) => post.reach)),
+      impressions: sum(group.map((post) => post.impressions)),
+      interactions: sum(group.map(totalInteractions)),
+      engagement: sum(group.map((post) => post.reach))
+        ? (sum(group.map(totalInteractions)) / sum(group.map((post) => post.reach))) * 100
+        : 0
+    }))
+    .sort((a, b) => b.engagement - a.engagement);
+}
+
+export function buildPlatformComparison(accounts, posts) {
+  return accounts.map((account) => {
+    const platformPosts = posts.filter((post) => post.accountId === account.id);
+    const reach = sum(platformPosts.map((post) => post.reach));
+    const interactions = sum(platformPosts.map(totalInteractions));
+    return {
+      platform: account.platform,
+      account: account.handle,
+      followers: account.followers,
+      growth: percentChange(account.followers, account.previousFollowers),
+      reach,
+      impressions: sum(platformPosts.map((post) => post.impressions)),
+      engagement: reach ? (interactions / reach) * 100 : 0,
+      posts: platformPosts.length
+    };
+  });
+}
+
+export function getContentPattern(posts) {
+  const formats = summarizeBy(posts, "format");
+  const topics = summarizeBy(posts, "topic");
+  const hours = summarizeBy(posts.map((post) => ({ ...post, timeBand: `${String(post.hour).padStart(2, "0")}:00` })), "timeBand");
+  return {
+    bestFormat: formats[0] || null,
+    weakestFormat: formats.at(-1) || null,
+    bestTopic: topics[0] || null,
+    bestHour: hours[0] || null
+  };
 }
