@@ -166,6 +166,9 @@ function can(permission) {
 async function bootstrapAuth() {
   try {
     const setup = await apiRequest("/auth/setup");
+    if (typeof setup.needsInitialAdmin !== "boolean") {
+      throw new Error("La API de autenticacion no esta disponible.");
+    }
     state.apiAvailable = true;
     state.needsInitialAdmin = setup.needsInitialAdmin;
     if (!setup.needsInitialAdmin) {
