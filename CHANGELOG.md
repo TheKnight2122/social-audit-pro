@@ -16,6 +16,7 @@ El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixe
 - Guardado de reportes y exportacion profesional a PDF.
 - Pruebas de integracion de API con Supertest.
 - Compilacion estatica para publicar una demostracion visual sin alterar el entorno local.
+- Publicacion automatica en GitHub Pages con cada actualizacion de `main`.
 
 ### Changed
 
