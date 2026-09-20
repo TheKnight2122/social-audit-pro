@@ -1347,6 +1347,11 @@ dd {
   color: var(--warn);
 }
 
+.connection-status.active {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
 .connection-status.pending {
   background: #edf0f3;
   color: #617083;

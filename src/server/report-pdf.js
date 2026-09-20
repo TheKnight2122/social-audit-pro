@@ -50,13 +50,20 @@ function list(document, items) {
   }
 }
 
-function kpiGrid(document, kpis) {
-  const items = [
-    ["Seguidores", safeNumber(kpis.followers), "Comunidad total"],
-    ["Alcance", safeNumber(kpis.reach), "Personas alcanzadas"],
-    ["Impresiones", safeNumber(kpis.impressions), "Exposiciones"],
-    ["Engagement", safeNumber(kpis.engagement, 2) + "%", "Interacciones / alcance"]
-  ];
+function kpiGrid(document, kpis, dataSource) {
+  const items = dataSource === "official"
+    ? [
+        ["Suscriptores", kpis.subscribers == null ? "No disponible" : safeNumber(kpis.subscribers), "Dato oficial del canal"],
+        ["Vistas", safeNumber(kpis.views), "Videos sincronizados"],
+        ["Interacciones", safeNumber(kpis.interactions), "Datos disponibles"],
+        ["Interacciones / vistas", safeNumber(kpis.interactionRate, 2) + "%", "Formula documentada"]
+      ]
+    : [
+        ["Seguidores", safeNumber(kpis.followers), "Comunidad total"],
+        ["Alcance", safeNumber(kpis.reach), "Personas alcanzadas"],
+        ["Impresiones", safeNumber(kpis.impressions), "Exposiciones"],
+        ["Engagement", safeNumber(kpis.engagement, 2) + "%", "Interacciones / alcance"]
+      ];
   const startY = document.y;
   const width = 242;
   const height = 72;
@@ -123,7 +130,7 @@ export function createReportPdf({ title, platform, periodDays, generatedAt, cont
     );
 
     sectionTitle(document, 2, "Indicadores principales");
-    kpiGrid(document, kpis);
+    kpiGrid(document, kpis, content.dataSource);
 
     sectionTitle(document, 3, "Salud de la cuenta");
     const dimensions = Array.isArray(audit.dimensions) ? audit.dimensions : [];

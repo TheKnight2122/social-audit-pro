@@ -20,7 +20,7 @@ La version actual incluye:
 - Demostracion estatica publicada automaticamente en GitHub Pages.
 - Pruebas automatizadas para analitica, API, autenticacion, roles y persistencia.
 
-Los conectores OAuth oficiales y la extraccion automatica desde redes sociales siguen pendientes de credenciales y aprobaciones de cada plataforma.
+YouTube cuenta con el primer conector OAuth oficial completo; requiere credenciales propias de Google para activarse. Los conectores restantes siguen pendientes de credenciales, permisos y aprobaciones de cada plataforma.
 
 ## Version local y publica
 
@@ -68,8 +68,8 @@ npm run build
 
 ## Trabajo pendiente prioritario
 
-1. Implementar los flujos OAuth oficiales de las plataformas compatibles.
-2. Renovar tokens y programar sincronizaciones automaticas.
+1. Reutilizar el patron OAuth de YouTube para Meta, TikTok, LinkedIn y X.
+2. Programar sincronizaciones automaticas y gestionar revocaciones.
 3. Sustituir progresivamente los datos demostrativos por consultas a historicos persistidos.
 4. Incorporar aislamiento de datos por organizacion o cliente.
 5. Endurecer el despliegue para produccion, incluyendo recuperacion de contrasena y segundo factor.
@@ -95,4 +95,3 @@ Leer primero:
 - `docs/19-estado-del-proyecto.md`
 - `docs/20-roadmap.md`
 - `CHANGELOG.md`
-

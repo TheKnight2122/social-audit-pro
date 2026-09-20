@@ -51,20 +51,20 @@ Estado: frontend completado; servicios transversales reales y migracion de datos
 - Insights. Estado: demo funcional.
 - Recomendaciones. Estado: demo funcional.
 - Reportes. Estado: persistencia y PDF funcionales.
-- Integraciones. Estado: configuracion cifrada e importacion funcionales; OAuth pendiente.
+- Integraciones. Estado: YouTube OAuth completo; configuracion cifrada e importacion manual conservadas; proveedores restantes pendientes.
 - Configuracion. Estado: usuarios y roles funcionales contra backend.
 
 ## Fase 5 - Integracion
 
 Estado: en progreso.
 
-- Integrar modulos y servicios. Estado: backend, autenticacion y PDF integrados; conectores oficiales pendientes.
+- Integrar modulos y servicios. Estado: primer conector oficial de YouTube integrado de extremo a extremo; Meta, TikTok, LinkedIn y X pendientes.
 
 ## Fase 6 - Pruebas
 
 Estado: en progreso.
 
-- Ejecutar pruebas unitarias, integracion, funcionales y seguridad basica. Estado: 15 pruebas automatizadas y QA visual inicial completadas.
+- Ejecutar pruebas unitarias, integracion, funcionales y seguridad basica. Estado: 17 pruebas automatizadas, incluido OAuth simulado, cifrado, sincronizacion y aislamiento por usuario.
 
 ## Fase 7 - Correcciones
 

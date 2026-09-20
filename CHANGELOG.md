@@ -4,6 +4,28 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.4.0] - 2026-09-20
+
+### Added
+
+- Primer conector oficial completo para YouTube con OAuth 2.0, YouTube Data API y YouTube Analytics API.
+- Persistencia por usuario de conexiones OAuth, estados temporales y ejecuciones de sincronizacion.
+- Sincronizacion idempotente de canal, videos, metricas disponibles e historicos.
+- Endpoint analitico que alimenta las vistas existentes con datos oficiales del usuario conectado.
+- Pruebas de OAuth, cifrado de tokens, normalizacion, sincronizacion y aislamiento por usuario.
+
+### Changed
+
+- Dashboard, auditoria, metricas, contenido y reportes usan datos oficiales cuando existe una cuenta de YouTube conectada.
+- Las metricas que YouTube no proporciona, como alcance e impresiones en este flujo, aparecen como no disponibles y no se estiman.
+- El sistema de migraciones ejecuta y registra todos los archivos SQL pendientes en orden.
+
+### Security
+
+- Estado OAuth aleatorio, almacenado como hash, con expiracion y uso unico.
+- Tokens OAuth cifrados con AES-256-GCM y asociados al usuario propietario.
+- Bloqueo de la reasignacion de una cuenta social registrada a otro usuario.
+
 ## [v0.3.0] - 2026-09-15
 
 ### Added

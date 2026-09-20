@@ -41,7 +41,7 @@ export const sampleData = {
     { platform: "Facebook", provider: "Meta Graph API", status: "demo", account: "Marca Demo", freshness: "20 min", metrics: ["seguidores", "alcance", "impresiones", "clics"] },
     { platform: "TikTok", provider: "TikTok for Developers", status: "demo", account: "@marca.demo", freshness: "30 min", metrics: ["seguidores", "vistas", "likes", "comentarios"] },
     { platform: "LinkedIn", provider: "LinkedIn Marketing API", status: "demo", account: "Marca Demo Empresa", freshness: "40 min", metrics: ["seguidores", "impresiones", "clics", "interacciones"] },
-    { platform: "YouTube", provider: "YouTube Analytics API", status: "pending", account: null, freshness: null, metrics: ["suscriptores", "vistas", "tiempo de reproduccion", "retencion"] },
+    { platform: "YouTube", provider: "YouTube Data y Analytics API", status: "pending", account: null, freshness: null, metrics: ["suscriptores", "vistas", "likes", "comentarios", "tiempo de reproduccion"] },
     { platform: "X", provider: "X API", status: "pending", account: null, freshness: null, metrics: ["seguidores", "impresiones", "interacciones"] }
   ],
   users: [

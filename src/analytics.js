@@ -17,8 +17,9 @@ export function totalInteractions(post) {
 }
 
 export function engagementRate(post) {
-  if (!post.reach) return 0;
-  return (totalInteractions(post) / post.reach) * 100;
+  const denominator = post.reach || (post.engagementBase === "views" ? post.views : 0);
+  if (!denominator) return 0;
+  return (totalInteractions(post) / denominator) * 100;
 }
 
 export function classifyPerformance(rate) {
@@ -53,7 +54,7 @@ export function sortPosts(posts, sortBy = "engagement-desc") {
   const sorted = [...posts];
   const comparators = {
     "engagement-desc": (a, b) => engagementRate(b) - engagementRate(a),
-    "reach-desc": (a, b) => b.reach - a.reach,
+    "reach-desc": (a, b) => Number(b.reach ?? (b.engagementBase === "views" ? b.views : 0)) - Number(a.reach ?? (a.engagementBase === "views" ? a.views : 0)),
     "interactions-desc": (a, b) => totalInteractions(b) - totalInteractions(a),
     "date-desc": (a, b) => new Date(b.date) - new Date(a.date),
     "performance-asc": (a, b) => engagementRate(a) - engagementRate(b)
@@ -226,16 +227,19 @@ export function summarizeBy(posts, field) {
   }
 
   return [...groups.entries()]
-    .map(([name, group]) => ({
-      name,
-      posts: group.length,
-      reach: sum(group.map((post) => post.reach)),
-      impressions: sum(group.map((post) => post.impressions)),
-      interactions: sum(group.map(totalInteractions)),
-      engagement: sum(group.map((post) => post.reach))
-        ? (sum(group.map(totalInteractions)) / sum(group.map((post) => post.reach))) * 100
-        : 0
-    }))
+    .map(([name, group]) => {
+      const denominator = sum(group.map((post) => post.reach || (post.engagementBase === "views" ? post.views : 0)));
+      const interactions = sum(group.map(totalInteractions));
+      return {
+        name,
+        posts: group.length,
+        views: sum(group.map((post) => post.views)),
+        reach: sum(group.map((post) => post.reach)),
+        impressions: sum(group.map((post) => post.impressions)),
+        interactions,
+        engagement: denominator ? (interactions / denominator) * 100 : 0
+      };
+    })
     .sort((a, b) => b.engagement - a.engagement);
 }
 

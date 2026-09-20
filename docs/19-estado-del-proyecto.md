@@ -25,28 +25,33 @@
 - Cifrado de secretos y registro de actividad.
 - Importacion persistente de cuentas, publicaciones e historicos.
 - Guardado de reportes y exportacion PDF profesional.
-- Quince pruebas automatizadas exitosas.
+- Primer flujo OAuth oficial completo con YouTube.
+- Tokens OAuth cifrados, estado de un solo uso y renovacion oficial mediante refresh token.
+- Sincronizacion idempotente de canal, videos, metricas e historicos de YouTube.
+- Dashboard y modulos analiticos alimentados con datos oficiales para el usuario conectado.
+- Aislamiento por usuario para cuentas OAuth de YouTube.
+- Diecisiete pruebas automatizadas exitosas.
 
 ## En desarrollo
 
-- Conectores OAuth y sincronizacion automatizada con APIs oficiales.
-- Sustitucion progresiva de datos demo analiticos por consultas persistentes.
+- Conectores OAuth de Instagram, Facebook, TikTok, LinkedIn y X.
+- Sincronizacion programada y administracion del ciclo de vida de conexiones.
 
 ## Pendiente
 
 - Registrar aplicaciones y credenciales aprobadas en cada red social.
-- Implementar OAuth, renovacion de tokens y sincronizacion programada por proveedor.
+- Implementar OAuth y sincronizacion por proveedor reutilizando el patron de YouTube.
 - Agregar aislamiento por organizacion y cuenta.
 - Ampliar pruebas funcionales, de seguridad y de conectores.
 - Preparar infraestructura y gestion de secretos para produccion.
 
 ## Problemas conocidos
 
-- Los datos del MVP son demo y no provienen de APIs reales.
-- Las vistas analiticas principales todavia parten del conjunto demo local.
-- La configuracion de una integracion no equivale a una autorizacion OAuth completa.
-- No hay tareas programadas de sincronizacion ni renovacion automatica de tokens.
+- Sin una cuenta oficial conectada, las vistas mantienen datos demo para presentacion.
+- Solo YouTube dispone actualmente del flujo oficial completo.
+- No hay tareas programadas; la sincronizacion oficial se ejecuta manualmente.
+- YouTube no proporciona alcance, impresiones ni demografia mediante los endpoints usados, por lo que el sistema los marca como no disponibles.
 
 ## Proximo objetivo
 
-Implementar el primer conector OAuth oficial y alimentar el dashboard desde sus historicos persistidos.
+Registrar credenciales reales de Google, validar el flujo con una cuenta autorizada y reutilizar la arquitectura para Meta.

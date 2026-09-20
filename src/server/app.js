@@ -6,6 +6,7 @@ import { createUsersRouter } from "./routes/users.js";
 import { createIntegrationsRouter } from "./routes/integrations.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createReportsRouter } from "./routes/reports.js";
+import { createYouTubeProvider } from "./integrations/youtube.js";
 import {
   sameOrigin,
   securityHeaders,
@@ -38,7 +39,13 @@ export function createApp({
   database,
   encryptionSecret = process.env.TOKEN_ENCRYPTION_KEY,
   secureCookies = process.env.NODE_ENV === "production",
-  loginLimit
+  loginLimit,
+  appBaseUrl = process.env.APP_BASE_URL || "http://127.0.0.1:4173",
+  youtubeProvider = createYouTubeProvider({
+    clientId: process.env.YOUTUBE_OAUTH_CLIENT_ID,
+    clientSecret: process.env.YOUTUBE_OAUTH_CLIENT_SECRET,
+    redirectUri: process.env.YOUTUBE_OAUTH_REDIRECT_URI
+  })
 }) {
   if (!database) throw new Error("La aplicacion necesita una base de datos.");
   const app = express();
@@ -64,7 +71,12 @@ export function createApp({
     loginLimiter: createLoginLimiter(loginLimit)
   }));
   app.use("/api/v1/users", createUsersRouter({ database }));
-  app.use("/api/v1/integrations", createIntegrationsRouter({ database, encryptionSecret }));
+  app.use("/api/v1/integrations", createIntegrationsRouter({
+    database,
+    encryptionSecret,
+    youtubeProvider,
+    appBaseUrl
+  }));
   app.use("/api/v1/analytics", createAnalyticsRouter({ database }));
   app.use("/api/v1/reports", createReportsRouter({ database }));
 

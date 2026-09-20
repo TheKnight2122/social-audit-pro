@@ -2,7 +2,7 @@
 
 ## Estado
 
-Arquitectura por capas implementada en v0.3.0 para frontend, API, autenticacion, persistencia, analitica y reportes. La capa de integraciones soporta configuracion cifrada e importacion persistente; los conectores OAuth oficiales siguen en desarrollo.
+Arquitectura por capas implementada para frontend, API, autenticacion, persistencia, analitica y reportes. Desde v0.4.0, YouTube valida el primer conector oficial completo y sirve como patron para los proveedores restantes.
 
 ## Diagrama general objetivo
 
@@ -48,7 +48,7 @@ Frontend -> Backend -> Servicio de integracion -> API social -> Procesamiento ->
 
 APIs oficiales de redes sociales. La disponibilidad de metricas depende de cada API y del nivel de permisos aprobado.
 
-## Arquitectura implementada v0.3.0
+## Arquitectura implementada v0.4.0
 
 ```mermaid
 flowchart LR
@@ -57,6 +57,10 @@ flowchart LR
     API --> AUTH[Sesiones y permisos]
     API --> DB[(SQLite)]
     API --> PDF[PDFKit]
+    API --> OAUTH[OAuth state y tokens cifrados]
+    OAUTH --> GOOGLE[YouTube Data y Analytics API]
+    GOOGLE --> NORMALIZE[Normalizacion y deduplicacion]
+    NORMALIZE --> DB
     ROUTER --> ANALYTICS[src/analytics.js]
     ROUTER --> DEMO[src/data/sampleData.js]
     TEST[test unitarios y API] --> API
@@ -66,3 +70,5 @@ flowchart LR
 El enrutamiento por hash mantiene una sola carga de aplicacion, pero cada opcion del menu reemplaza completamente el contenido de `view-root`. Esto evita apilar modulos en una unica pagina y permite enlazar directamente rutas como `#/auditoria`, `#/metricas` y `#/contenido`.
 
 El backend se crea desde `src/server/app.js`; `server.js` solo carga el entorno, abre la base y administra el ciclo de vida. Las rutas se separan por autenticacion, usuarios, integraciones, analitica y reportes. Esta estructura permite probar la API en memoria sin iniciar un puerto real.
+
+El conector `src/server/integrations/youtube.js` encapsula OAuth y las consultas oficiales. `oauth-storage.js` cifra tokens, relaciona la conexion con el usuario y guarda cuentas, metricas, videos e historicos mediante operaciones idempotentes. La vista consume `/api/v1/analytics/dashboard`; solo conserva los datos demo cuando no existe una cuenta oficial conectada.

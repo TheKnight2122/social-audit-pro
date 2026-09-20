@@ -11,6 +11,7 @@ import {
   getContentPattern,
   percentChange,
   rankPosts,
+  scoreLabel,
   sortPosts,
   summarizeBy,
   totalInteractions
@@ -37,8 +38,20 @@ const state = {
   apiAvailable: true,
   users: null,
   persistedIntegrations: null,
-  savedReports: null
+  savedReports: null,
+  liveData: null,
+  oauthNotice: null
 };
+
+const oauthParameters = new URLSearchParams(window.location.search);
+if (oauthParameters.get("oauth")) {
+  state.oauthNotice = {
+    platform: oauthParameters.get("oauth"),
+    status: oauthParameters.get("status"),
+    reason: oauthParameters.get("reason")
+  };
+  history.replaceState({}, "", window.location.pathname + window.location.hash);
+}
 
 const routes = {
   dashboard: {
@@ -188,6 +201,18 @@ async function bootstrapAuth() {
   }
 }
 
+async function loadLiveData() {
+  state.liveData = null;
+  if (!state.user || !state.apiAvailable) return;
+  try {
+    const payload = await apiRequest("/analytics/dashboard");
+    if (payload.accounts?.length) state.liveData = payload;
+  } catch (error) {
+    elements.status.textContent = error.message;
+  }
+  updateAccountOptions();
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -202,8 +227,12 @@ function currentRoute() {
   return routes[requested] ? requested : "dashboard";
 }
 
+function activeData() {
+  return state.liveData?.accounts?.length ? state.liveData : sampleData;
+}
+
 function getVisibleAccounts() {
-  return sampleData.accounts.filter(function (account) {
+  return activeData().accounts.filter(function (account) {
     const platformMatches = state.platform === "all" || account.platform === state.platform;
     const accountMatches = state.account === "all" || account.id === state.account;
     return platformMatches && accountMatches;
@@ -211,11 +240,13 @@ function getVisibleAccounts() {
 }
 
 function getVisiblePosts() {
-  const latestDate = new Date(Math.max(...sampleData.posts.map(function (post) {
+  const availablePosts = activeData().posts;
+  if (!availablePosts.length) return [];
+  const latestDate = new Date(Math.max(...availablePosts.map(function (post) {
     return new Date(post.date).getTime();
   })));
   const days = Number(state.period);
-  const periodPosts = sampleData.posts.filter(function (post) {
+  const periodPosts = availablePosts.filter(function (post) {
     const age = (latestDate - new Date(post.date)) / 86400000;
     return age < days;
   });
@@ -226,12 +257,119 @@ function allAnalysis() {
   const accounts = getVisibleAccounts();
   const posts = getVisiblePosts();
   const kpis = calculateKpis(accounts, posts);
-  const audit = calculateAudit(kpis, posts);
-  const anomalies = detectAnomalies(posts);
+  const isOfficial = Boolean(state.liveData?.accounts?.length);
+  const audit = isOfficial
+    ? calculateOfficialAudit(accounts, posts, kpis)
+    : calculateAudit(kpis, posts);
+  const anomalies = isOfficial ? calculateOfficialInsights(posts) : detectAnomalies(posts);
   const topPosts = rankPosts(posts, "top");
   const bottomPosts = rankPosts(posts, "bottom");
-  const recommendations = buildRecommendations(kpis, anomalies, topPosts, bottomPosts);
+  const recommendations = isOfficial
+    ? buildOfficialRecommendations(posts, topPosts, bottomPosts)
+    : buildRecommendations(kpis, anomalies, topPosts, bottomPosts);
   return { accounts, posts, kpis, audit, anomalies, topPosts, bottomPosts, recommendations };
+}
+
+function calculateOfficialInsights(posts) {
+  const measurable = posts.filter(function (post) { return Number(post.views || 0) > 0; });
+  if (measurable.length < 2) return [];
+  const ranked = [...measurable].sort(function (a, b) { return engagementRate(b) - engagementRate(a); });
+  const averageRate = ranked.reduce(function (total, post) { return total + engagementRate(post); }, 0) / ranked.length;
+  const top = ranked[0];
+  const low = ranked.at(-1);
+  const insights = [];
+  if (engagementRate(top) >= averageRate * 1.25) {
+    insights.push({
+      type: "Respuesta destacada",
+      metric: "Interacciones por vistas",
+      date: top.date,
+      magnitude: engagementRate(top),
+      evidence: top.description + " registra " + engagementRate(top).toFixed(2) + "% de interacciones por vistas.",
+      interpretation: "Es el video con mayor respuesta proporcional dentro del periodo disponible.",
+      hypothesis: "El tema o la presentacion pueden haber contribuido; se necesita comparar mas videos para confirmarlo.",
+      impact: "Puede orientar nuevas pruebas editoriales con una referencia observada.",
+      recommendation: "Comparar su tema, duracion y presentacion con el resto del periodo antes de replicar el patron."
+    });
+  }
+  if (low !== top && engagementRate(low) <= averageRate * 0.75) {
+    insights.push({
+      type: "Respuesta inferior al promedio",
+      metric: "Interacciones por vistas",
+      date: low.date,
+      magnitude: engagementRate(low),
+      evidence: low.description + " registra " + engagementRate(low).toFixed(2) + "% de interacciones por vistas.",
+      interpretation: "Es el video con menor respuesta proporcional dentro del periodo disponible.",
+      hypothesis: "El resultado puede relacionarse con el tema, la presentacion o el contexto de publicacion; no se atribuye una causa unica.",
+      impact: "Una respuesta proporcional baja puede limitar la eficiencia editorial si se repite.",
+      recommendation: "Contrastar el video con los de mejor respuesta y probar una variacion medible."
+    });
+  }
+  return insights;
+}
+
+function buildOfficialRecommendations(posts, topPosts, bottomPosts) {
+  const recommendations = [];
+  if (posts.length < 5) {
+    recommendations.push({
+      priority: "Alta",
+      problem: "Historial oficial limitado para establecer patrones.",
+      evidence: "El periodo filtrado contiene " + posts.length + " videos sincronizados.",
+      impact: "Una muestra pequena reduce la confianza de comparativas y tendencias.",
+      action: "Ampliar el periodo o sincronizar mas historial antes de tomar decisiones definitivas."
+    });
+  }
+  if (topPosts[0]) {
+    recommendations.push({
+      priority: "Media",
+      problem: "Existe un video con la mejor respuesta proporcional observada.",
+      evidence: topPosts[0].description + " lidera con " + engagementRate(topPosts[0]).toFixed(2) + "% de interacciones por vistas.",
+      impact: "Ofrece una referencia real para priorizar nuevas pruebas de contenido.",
+      action: "Comparar tema, formato y presentacion con el resto del periodo y validar una variacion."
+    });
+  }
+  if (bottomPosts[0] && bottomPosts[0] !== topPosts[0]) {
+    recommendations.push({
+      priority: "Baja",
+      problem: "Un video presenta la menor respuesta proporcional del periodo.",
+      evidence: bottomPosts[0].description + " registra " + engagementRate(bottomPosts[0]).toFixed(2) + "% de interacciones por vistas.",
+      impact: "Puede senalar una oportunidad de mejorar la propuesta editorial.",
+      action: "Revisar el enfoque del contenido y medir una alternativa sin asumir una causa unica."
+    });
+  }
+  return recommendations;
+}
+
+function calculateOfficialAudit(accounts, posts, kpis) {
+  const consistencyScore = Math.min(100, posts.length * 8);
+  const views = posts.reduce(function (total, post) { return total + Number(post.views || 0); }, 0);
+  const interactions = posts.reduce(function (total, post) { return total + totalInteractions(post); }, 0);
+  const interactionRate = views ? (interactions / views) * 100 : 0;
+  const interactionScore = Math.min(100, interactionRate * 10);
+  const presenceScore = Math.round(kpis.averageProfileCompleteness);
+  const growthScore = Math.max(0, Math.min(100, 70 + kpis.followersChange * 2));
+  const contentScore = Math.round((consistencyScore + interactionScore) / 2);
+  const hasGrowthHistory = accounts.some(function (account) { return account.hasPreviousFollowers; });
+  const dimensions = [
+    { name: "Presencia digital", score: presenceScore, weight: 20, explanation: "Completitud calculada con la informacion oficial disponible del canal." },
+    { name: "Actividad", score: Math.round(consistencyScore), weight: 20, explanation: "Volumen de videos publicados en el periodo seleccionado." },
+    { name: "Interaccion por vistas", score: Math.round(interactionScore), weight: 30, explanation: "Likes, comentarios y compartidos disponibles sobre vistas." },
+    { name: "Contenido", score: Math.round(contentScore), weight: 15, explanation: "Combinacion de actividad y respuesta observable de la audiencia." }
+  ];
+  if (hasGrowthHistory) {
+    dimensions.push({ name: "Crecimiento", score: Math.round(growthScore), weight: 15, explanation: "Variacion de suscriptores entre sincronizaciones disponibles." });
+  }
+  const totalWeight = dimensions.reduce(function (total, dimension) { return total + dimension.weight; }, 0);
+  const totalScore = Math.round(dimensions.reduce(function (total, dimension) {
+    return total + dimension.score * dimension.weight;
+  }, 0) / totalWeight);
+  return {
+    totalScore,
+    label: scoreLabel(totalScore) + " · parcial",
+    dimensions: dimensions.map(function ({ weight, ...dimension }) {
+      return { ...dimension, weightPercent: weight / totalWeight * 100 };
+    }),
+    hasGrowthHistory
+  };
 }
 
 function changeMarkup(change, comparison) {
@@ -245,7 +383,10 @@ function kpiCard(label, value, change, note, unavailable) {
   if (unavailable) {
     return '<article class="kpi-card unavailable-card"><span>' + escapeHtml(label) + '</span><strong class="unavailable-value">No disponible</strong><p>Metrica no disponible para esta plataforma o nivel de acceso.</p></article>';
   }
-  return '<article class="kpi-card"><span>' + escapeHtml(label) + "</span><strong>" + escapeHtml(value) + '</strong><div class="kpi-change">' + changeMarkup(change) + "</div><p>" + escapeHtml(note) + "</p></article>";
+  const changeContent = change == null
+    ? '<small class="official-source">Dato obtenido mediante API oficial</small>'
+    : changeMarkup(change);
+  return '<article class="kpi-card"><span>' + escapeHtml(label) + "</span><strong>" + escapeHtml(value) + '</strong><div class="kpi-change">' + changeContent + "</div><p>" + escapeHtml(note) + "</p></article>";
 }
 
 function panelHeader(eyebrow, title, trailing) {
@@ -261,6 +402,18 @@ function statusLabel(value) {
 }
 
 function renderSummaryGrid(kpis) {
+  if (state.liveData?.accounts?.length) {
+    const posts = getVisiblePosts();
+    const subscribersAvailable = getVisibleAccounts().some(function (account) { return account.followers != null; });
+    const views = posts.reduce(function (total, post) { return total + Number(post.views || 0); }, 0);
+    const interactions = posts.reduce(function (total, post) { return total + totalInteractions(post); }, 0);
+    return '<section class="summary-grid">' +
+      kpiCard("Suscriptores", number.format(kpis.followers), null, "Comunidad informada por el canal autorizado", !subscribersAvailable) +
+      kpiCard("Vistas", number.format(views), null, "Vistas acumuladas de los videos visibles") +
+      kpiCard("Interacciones", number.format(interactions), null, "Likes, comentarios y compartidos disponibles") +
+      kpiCard("Videos", number.format(kpis.posts), null, "Contenido obtenido desde YouTube Data API") +
+      "</section>";
+  }
   const engagementChange = percentChange(kpis.engagement, 5);
   return '<section class="summary-grid">' +
     kpiCard("Seguidores", number.format(kpis.followers), kpis.followersChange, "Comunidad acumulada de las cuentas visibles") +
@@ -271,12 +424,15 @@ function renderSummaryGrid(kpis) {
 }
 
 function renderTrendChart() {
-  const max = Math.max(...sampleData.engagementTrend.map(function (point) { return point.value; }));
-  const bars = sampleData.engagementTrend.map(function (point) {
+  const isLive = Boolean(state.liveData?.accounts?.length);
+  const trend = isLive ? state.liveData.trend : sampleData.engagementTrend;
+  if (!trend?.length) return emptyState("La API oficial todavia no ofrece historial suficiente para esta tendencia.");
+  const max = Math.max(...trend.map(function (point) { return point.value; }), 1);
+  const bars = trend.map(function (point) {
     const height = Math.max(8, (point.value / max) * 100);
-    return '<div class="trend-bar"><div class="bar-track"><span style="height:' + height + '%"></span></div><small>' + escapeHtml(point.label) + "</small><b>" + point.value + "%</b></div>";
+    return '<div class="trend-bar"><div class="bar-track"><span style="height:' + height + '%"></span></div><small>' + escapeHtml(point.label) + "</small><b>" + (isLive ? number.format(point.value) : point.value + "%") + "</b></div>";
   }).join("");
-  return '<div class="trend-chart" aria-label="Evolucion semanal del engagement">' + bars + "</div>";
+  return '<div class="trend-chart" aria-label="' + (isLive ? "Vistas semanales oficiales" : "Evolucion semanal del engagement") + '">' + bars + "</div>";
 }
 
 function renderHealthBars(audit) {
@@ -286,15 +442,16 @@ function renderHealthBars(audit) {
 }
 
 function renderDashboard(data) {
+  const isLive = Boolean(state.liveData?.accounts?.length);
   const strongest = [...data.audit.dimensions].sort(function (a, b) { return b.score - a.score; })[0];
   const weakest = [...data.audit.dimensions].sort(function (a, b) { return a.score - b.score; })[0];
   const firstRecommendation = data.recommendations[0];
   return renderSummaryGrid(data.kpis) +
     '<section class="split-grid"><article class="panel">' +
       panelHeader("Salud de cuenta", "Diagnostico general", '<span class="score-pill">' + data.audit.totalScore + "/100 · " + escapeHtml(data.audit.label) + "</span>") +
-      '<div class="score-overview"><div class="score-ring" style="--score:' + data.audit.totalScore + '"><strong>' + data.audit.totalScore + "</strong><span>de 100</span></div><div><h3>" + escapeHtml(data.audit.label) + "</h3><p>La puntuacion combina presencia, actividad, engagement, contenido, crecimiento y alcance con ponderaciones documentadas.</p></div></div>" +
+      '<div class="score-overview"><div class="score-ring" style="--score:' + data.audit.totalScore + '"><strong>' + data.audit.totalScore + "</strong><span>de 100</span></div><div><h3>" + escapeHtml(data.audit.label) + "</h3><p>" + (isLive ? "La puntuacion parcial usa solo presencia, actividad, interacciones por vistas, contenido y crecimiento disponibles mediante la API oficial." : "La puntuacion combina presencia, actividad, engagement, contenido, crecimiento y alcance con ponderaciones documentadas.") + "</p></div></div>" +
     '</article><article class="panel">' +
-      panelHeader("Tendencia", "Evolucion del engagement") + renderTrendChart() +
+      panelHeader("Tendencia", state.liveData?.accounts?.length ? "Vistas obtenidas por semana" : "Evolucion del engagement") + renderTrendChart() +
     '</article></section>' +
     '<section class="decision-band"><div><span>Principal fortaleza</span><strong>' + escapeHtml(strongest.name) + " · " + strongest.score + '/100</strong><p>' + escapeHtml(strongest.explanation) + '</p></div><div><span>Area a mejorar</span><strong>' + escapeHtml(weakest.name) + " · " + weakest.score + '/100</strong><p>' + escapeHtml(weakest.explanation) + '</p></div><div><span>Accion prioritaria</span><strong>' + escapeHtml(firstRecommendation ? firstRecommendation.priority : "Seguimiento") + '</strong><p>' + escapeHtml(firstRecommendation ? firstRecommendation.action : "Mantener el monitoreo del periodo.") + "</p></div></section>" +
     '<section class="split-grid"><article class="panel">' +
@@ -305,15 +462,23 @@ function renderDashboard(data) {
 }
 
 function renderAuditPage(data) {
-  const methodology = [
-    ["Presencia digital", "15%", "Completitud del perfil"],
-    ["Actividad", "15%", "Volumen y consistencia"],
-    ["Engagement", "25%", "Interacciones sobre alcance"],
-    ["Contenido", "15%", "Frecuencia y respuesta"],
-    ["Crecimiento", "15%", "Variacion de seguidores"],
-    ["Alcance", "15%", "Variacion del alcance"]
-  ];
-  return '<section class="audit-hero"><div class="score-ring large" style="--score:' + data.audit.totalScore + '"><strong>' + data.audit.totalScore + "</strong><span>" + escapeHtml(data.audit.label) + '</span></div><div><p class="eyebrow">Puntuacion consolidada</p><h2>Salud de las cuentas seleccionadas</h2><p>Resultado calculado con seis dimensiones y datos del periodo filtrado. La puntuacion no es arbitraria: cada componente muestra su evidencia y peso.</p></div></section>' +
+  const isLive = Boolean(state.liveData?.accounts?.length);
+  const methodology = isLive
+    ? data.audit.dimensions.map(function (dimension) {
+        return [dimension.name, decimal.format(dimension.weightPercent) + "%", dimension.explanation];
+      })
+    : [
+        ["Presencia digital", "15%", "Completitud del perfil"],
+        ["Actividad", "15%", "Volumen y consistencia"],
+        ["Engagement", "25%", "Interacciones sobre alcance"],
+        ["Contenido", "15%", "Frecuencia y respuesta"],
+        ["Crecimiento", "15%", "Variacion de seguidores"],
+        ["Alcance", "15%", "Variacion del alcance"]
+      ];
+  const auditDescription = isLive
+    ? "Resultado parcial calculado solo con las cinco dimensiones que la API oficial permite observar. Alcance e impresiones no se estiman."
+    : "Resultado calculado con seis dimensiones y datos del periodo filtrado. La puntuacion no es arbitraria: cada componente muestra su evidencia y peso.";
+  return '<section class="audit-hero"><div class="score-ring large" style="--score:' + data.audit.totalScore + '"><strong>' + data.audit.totalScore + "</strong><span>" + escapeHtml(data.audit.label) + '</span></div><div><p class="eyebrow">Puntuacion consolidada</p><h2>Salud de las cuentas seleccionadas</h2><p>' + auditDescription + "</p></div></section>" +
     '<section class="panel">' + panelHeader("Dimensiones", "Detalle de la auditoria") + renderHealthBars(data.audit) + "</section>" +
     '<section class="panel">' + panelHeader("Transparencia", "Metodologia de puntuacion") +
       '<div class="table-wrap"><table><thead><tr><th>Dimension</th><th>Peso</th><th>Base de calculo</th></tr></thead><tbody>' +
@@ -322,12 +487,34 @@ function renderAuditPage(data) {
 }
 
 function renderMetricsPage(data) {
+  const isLive = Boolean(state.liveData?.accounts?.length);
   const reachAverage = data.kpis.posts ? data.kpis.reach / data.kpis.posts : 0;
   const impressionAverage = data.kpis.posts ? data.kpis.impressions / data.kpis.posts : 0;
   const clicks = data.posts.reduce(function (total, post) { return total + Number(post.clicks || 0); }, 0);
   const ctr = data.kpis.impressions ? (clicks / data.kpis.impressions) * 100 : 0;
   const hasVideo = data.posts.some(function (post) { return Number.isFinite(post.views); });
   const views = data.posts.reduce(function (total, post) { return total + Number(post.views || 0); }, 0);
+  const likes = data.posts.reduce(function (total, post) { return total + Number(post.likes || 0); }, 0);
+  const comments = data.posts.reduce(function (total, post) { return total + Number(post.comments || 0); }, 0);
+  if (isLive) {
+    const subscribersAvailable = data.accounts.some(function (account) { return account.followers != null; });
+    const interactions = data.posts.reduce(function (total, post) { return total + totalInteractions(post); }, 0);
+    const interactionRate = views ? (interactions / views) * 100 : 0;
+    const averageViews = data.kpis.posts ? views / data.kpis.posts : 0;
+    return '<section class="summary-grid six">' +
+      kpiCard("Suscriptores", number.format(data.kpis.followers), null, "Total informado por el canal autorizado", !subscribersAvailable) +
+      kpiCard("Vistas", number.format(views), null, "Vistas acumuladas de los videos sincronizados") +
+      kpiCard("Interacciones", number.format(interactions), null, "Likes, comentarios y compartidos disponibles") +
+      kpiCard("Videos", number.format(data.kpis.posts), null, "Videos recuperados para el periodo") +
+      kpiCard("Likes", number.format(likes), null, "Likes informados por YouTube") +
+      kpiCard("Comentarios", number.format(comments), null, "Comentarios informados por YouTube") +
+      "</section>" +
+      '<section class="split-grid"><article class="panel">' + panelHeader("Evolucion", "Vistas oficiales por semana") + renderTrendChart() + '</article><article class="panel">' +
+        panelHeader("Lectura", "Indicadores disponibles") +
+        '<div class="metric-list"><div><span>Vistas promedio por video</span><strong>' + number.format(Math.round(averageViews)) + '</strong></div><div><span>Interacciones por vistas</span><strong>' + decimal.format(interactionRate) + '%</strong></div><div><span>Alcance</span><strong>No disponible</strong></div><div><span>Impresiones</span><strong>No disponible</strong></div></div>' +
+      '</article></section>' +
+      '<section class="panel">' + panelHeader("Desglose", "Rendimiento por formato") + renderSummaryTable(summarizeBy(data.posts, "format"), true) + "</section>";
+  }
   return '<section class="summary-grid six">' +
     kpiCard("Seguidores", number.format(data.kpis.followers), data.kpis.followersChange, "Comunidad total") +
     kpiCard("Alcance", number.format(data.kpis.reach), data.kpis.reachChange, "Alcance acumulado") +
@@ -344,14 +531,15 @@ function renderMetricsPage(data) {
 }
 
 function renderContentPage(data) {
+  const isLive = Boolean(state.liveData?.accounts?.length);
   const posts = sortPosts(data.posts, state.sort);
   const patterns = getContentPattern(data.posts);
   return '<section class="panel">' +
-    '<div class="content-toolbar"><label>Buscar<input id="post-search" type="search" value="' + escapeHtml(state.search) + '" placeholder="Tema o descripcion" /></label><label>Tematica<select id="topic-filter">' + optionList(uniqueValues(sampleData.posts, "topic"), state.topic, "Todas") + '</select></label><label>Campana<select id="campaign-filter">' + optionList(uniqueValues(sampleData.posts, "campaign"), state.campaign, "Todas") + '</select></label><label>Rendimiento<select id="performance-filter"><option value="all">Todos</option>' + selectedOption("high", "Alto", state.performance) + selectedOption("medium", "Medio", state.performance) + selectedOption("low", "Bajo", state.performance) + '</select></label><label>Ordenar<select id="sort-filter">' + selectedOption("engagement-desc", "Mayor engagement", state.sort) + selectedOption("reach-desc", "Mayor alcance", state.sort) + selectedOption("interactions-desc", "Mayor interaccion", state.sort) + selectedOption("date-desc", "Mas recientes", state.sort) + selectedOption("performance-asc", "Peor rendimiento", state.sort) + "</select></label></div>" +
+    '<div class="content-toolbar"><label>Buscar<input id="post-search" type="search" value="' + escapeHtml(state.search) + '" placeholder="Tema o descripcion" /></label><label>Tematica<select id="topic-filter">' + optionList(uniqueValues(activeData().posts, "topic"), state.topic, "Todas") + '</select></label><label>Campana<select id="campaign-filter">' + optionList(uniqueValues(activeData().posts, "campaign"), state.campaign, "Todas") + '</select></label><label>Rendimiento<select id="performance-filter"><option value="all">Todos</option>' + selectedOption("high", "Alto", state.performance) + selectedOption("medium", "Medio", state.performance) + selectedOption("low", "Bajo", state.performance) + '</select></label><label>Ordenar<select id="sort-filter">' + selectedOption("engagement-desc", isLive ? "Mayor interaccion por vistas" : "Mayor engagement", state.sort) + selectedOption("reach-desc", isLive ? "Mayor vistas" : "Mayor alcance", state.sort) + selectedOption("interactions-desc", "Mayor interaccion", state.sort) + selectedOption("date-desc", "Mas recientes", state.sort) + selectedOption("performance-asc", "Peor rendimiento", state.sort) + "</select></label></div>" +
     panelHeader("Publicaciones", number.format(posts.length) + " resultados") +
     renderPostsTable(posts) + "</section>" +
     '<section class="split-grid"><article class="panel">' + panelHeader("Top 10", "Mejor rendimiento") + renderRanking(data.topPosts.slice(0, 10)) + '</article><article class="panel">' + panelHeader("Bottom 10", "Menor rendimiento") + renderRanking(data.bottomPosts.slice(0, 10)) + "</article></section>" +
-    '<section class="decision-band"><div><span>Formato mas efectivo</span><strong>' + escapeHtml(patterns.bestFormat ? patterns.bestFormat.name : "Sin datos") + '</strong><p>' + (patterns.bestFormat ? decimal.format(patterns.bestFormat.engagement) + "% de engagement" : "No calculable") + '</p></div><div><span>Tematica mas efectiva</span><strong>' + escapeHtml(patterns.bestTopic ? patterns.bestTopic.name : "Sin datos") + '</strong><p>' + (patterns.bestTopic ? number.format(patterns.bestTopic.interactions) + " interacciones" : "No calculable") + '</p></div><div><span>Hora con mejor respuesta</span><strong>' + escapeHtml(patterns.bestHour ? patterns.bestHour.name : "Sin datos") + '</strong><p>Hallazgo descriptivo; requiere mas historial para recomendar horario.</p></div></section>';
+    '<section class="decision-band"><div><span>Formato mas efectivo</span><strong>' + escapeHtml(patterns.bestFormat ? patterns.bestFormat.name : "Sin datos") + '</strong><p>' + (patterns.bestFormat ? decimal.format(patterns.bestFormat.engagement) + (isLive ? "% de interacciones por vistas" : "% de engagement") : "No calculable") + '</p></div><div><span>Tematica mas efectiva</span><strong>' + escapeHtml(patterns.bestTopic ? patterns.bestTopic.name : "Sin datos") + '</strong><p>' + (patterns.bestTopic ? number.format(patterns.bestTopic.interactions) + " interacciones" : "No calculable") + '</p></div><div><span>Hora con mejor respuesta</span><strong>' + escapeHtml(patterns.bestHour ? patterns.bestHour.name : "Sin datos") + '</strong><p>Hallazgo descriptivo; requiere mas historial para recomendar horario.</p></div></section>';
 }
 
 function renderAudiencePage(data) {
@@ -371,8 +559,29 @@ function renderAudiencePage(data) {
 }
 
 function renderComparisonPage(data) {
-  const comparisonAccounts = state.platform === "all" ? sampleData.accounts : data.accounts;
+  const isLive = Boolean(state.liveData?.accounts?.length);
+  const comparisonAccounts = state.platform === "all" ? activeData().accounts : data.accounts;
   const comparisonPosts = getPostsForAccounts(comparisonAccounts);
+  if (isLive) {
+    const rows = comparisonAccounts.map(function (account) {
+      const posts = comparisonPosts.filter(function (post) { return post.accountId === account.id; });
+      const views = posts.reduce(function (total, post) { return total + Number(post.views || 0); }, 0);
+      const interactions = posts.reduce(function (total, post) { return total + totalInteractions(post); }, 0);
+      return { account, posts: posts.length, views, interactions, rate: views ? interactions / views * 100 : 0 };
+    });
+    const totalViews = comparisonPosts.reduce(function (total, post) { return total + Number(post.views || 0); }, 0);
+    return '<section class="panel">' + panelHeader("Plataformas", "Comparacion con datos oficiales") +
+      '<div class="info-line">Las comparaciones usan vistas e interacciones informadas por la API. Alcance e impresiones no se estiman.</div>' +
+      '<div class="table-wrap"><table><thead><tr><th>Red</th><th>Cuenta</th><th>Suscriptores</th><th>Crecimiento</th><th>Vistas</th><th>Interacciones</th><th>Interacciones / vistas</th><th>Videos</th></tr></thead><tbody>' +
+      rows.map(function (row) {
+        const growth = row.account.hasPreviousFollowers ? percentChange(row.account.followers, row.account.previousFollowers) : null;
+        const subscribers = row.account.followers == null ? "No disponible" : number.format(row.account.followers);
+        const growthCell = growth == null ? "No disponible" : '<span class="' + (growth >= 0 ? "positive" : "negative") + '">' + growth.toFixed(1) + "%</span>";
+        return "<tr><td><strong>" + escapeHtml(row.account.platform) + "</strong></td><td>" + escapeHtml(row.account.handle) + "</td><td>" + subscribers + "</td><td>" + growthCell + "</td><td>" + number.format(row.views) + "</td><td>" + number.format(row.interactions) + "</td><td>" + row.rate.toFixed(2) + "%</td><td>" + row.posts + "</td></tr>";
+      }).join("") + "</tbody></table></div></section>" +
+      '<section class="panel">' + panelHeader("Periodos", "Datos disponibles") +
+      '<div class="comparison-grid"><div><span>Suscriptores actuales</span><strong>' + (data.accounts.some(function (account) { return account.followers != null; }) ? number.format(data.kpis.followers) : "No disponible") + "</strong>" + (data.audit.hasGrowthHistory ? changeMarkup(data.kpis.followersChange) : "<small>Se requieren al menos dos sincronizaciones.</small>") + '</div><div><span>Vistas del periodo</span><strong>' + number.format(totalViews) + '</strong><small>Dato oficial de los videos sincronizados.</small></div><div><span>Mismo periodo del ano anterior</span><strong>No disponible</strong><small>Historial insuficiente para una comparacion valida.</small></div></div></section>';
+  }
   const rows = buildPlatformComparison(comparisonAccounts, comparisonPosts);
   const current = data.kpis;
   const previousReach = data.posts.reduce(function (total, post) { return total + Number(post.previousReach || 0); }, 0);
@@ -391,7 +600,7 @@ function renderInsightsPage(data) {
   if (!data.anomalies.length) return emptyState("No se detectaron cambios fuera de los umbrales con los filtros actuales.");
   return '<section class="insight-grid">' + data.anomalies.map(function (item) {
     const direction = item.magnitude >= 0 ? "positive" : "negative";
-    return '<article class="panel insight-detail"><div class="insight-heading"><div><span class="status ' + direction + '">' + escapeHtml(item.metric) + '</span><h2>' + escapeHtml(item.type) + '</h2></div><strong>' + Math.abs(item.magnitude).toFixed(1) + (item.metric === "Engagement" ? "%" : "% variacion") + '</strong></div><dl><div><dt>Dato observado</dt><dd>' + escapeHtml(item.evidence) + '</dd></div><div><dt>Interpretacion</dt><dd>' + escapeHtml(item.interpretation) + '</dd></div><div><dt>Hipotesis</dt><dd>' + escapeHtml(item.hypothesis) + '</dd></div><div><dt>Impacto</dt><dd>' + escapeHtml(item.impact) + '</dd></div><div><dt>Recomendacion</dt><dd>' + escapeHtml(item.recommendation) + "</dd></div></dl></article>";
+    return '<article class="panel insight-detail"><div class="insight-heading"><div><span class="status ' + direction + '">' + escapeHtml(item.metric) + '</span><h2>' + escapeHtml(item.type) + '</h2></div><strong>' + Math.abs(item.magnitude).toFixed(1) + (["Engagement", "Interacciones por vistas"].includes(item.metric) ? "%" : "% variacion") + '</strong></div><dl><div><dt>Dato observado</dt><dd>' + escapeHtml(item.evidence) + '</dd></div><div><dt>Interpretacion</dt><dd>' + escapeHtml(item.interpretation) + '</dd></div><div><dt>Hipotesis</dt><dd>' + escapeHtml(item.hypothesis) + '</dd></div><div><dt>Impacto</dt><dd>' + escapeHtml(item.impact) + '</dd></div><div><dt>Recomendacion</dt><dd>' + escapeHtml(item.recommendation) + "</dd></div></dl></article>";
   }).join("") + "</section>";
 }
 
@@ -417,16 +626,30 @@ function renderIntegrationsPage() {
   const cards = sampleData.integrations.map(function (integration) {
     const slug = integration.platform === "X" ? "x" : integration.platform.toLowerCase();
     const real = persisted.find(function (item) { return item.platform === slug; });
+    const connected = Boolean(real?.connectionId && real.status === "connected");
     const configured = real && real.status !== "not_configured";
-    const status = configured ? real.status : "Sin configurar";
-    return '<article class="integration-card"><div class="integration-top"><span class="platform-mark">' + escapeHtml(integration.platform.slice(0, 2).toUpperCase()) + '</span><div><h2>' + escapeHtml(integration.platform) + "</h2><p>" + escapeHtml(integration.provider) + '</p></div><span class="connection-status ' + (configured ? "demo" : "pending") + '">' + escapeHtml(status) + '</span></div><div class="integration-account"><span>Configuracion persistente</span><strong>' + (configured ? escapeHtml(real.displayName || "Credenciales almacenadas") : "No configurada") + '</strong></div><div class="tag-list">' + integration.metrics.map(function (metric) { return "<span>" + escapeHtml(metric) + "</span>"; }).join("") + '</div><div class="integration-footer"><small>' + (real && real.lastSyncAt ? "Ultima sincronizacion: " + escapeHtml(real.lastSyncAt) : "Sin sincronizacion oficial") + '</small></div></article>';
+    const status = connected ? "Conectada" : configured ? real.status : "Sin configurar";
+    let action = "";
+    if (slug === "youtube" && state.user) {
+      if (connected && can("sync:run")) {
+        action = '<button class="secondary-button integration-action" data-sync-platform="youtube" type="button">Sincronizar ahora</button>';
+      } else if (real?.oauthAvailable && can("integrations:write")) {
+        action = '<button class="primary-button integration-action" data-oauth-platform="youtube" type="button">Conectar cuenta</button>';
+      } else if (!real?.oauthAvailable && can("integrations:write")) {
+        action = '<button class="secondary-button integration-action" type="button" disabled>Falta configurar OAuth</button>';
+      }
+    }
+    return '<article class="integration-card"><div class="integration-top"><span class="platform-mark">' + escapeHtml(integration.platform.slice(0, 2).toUpperCase()) + '</span><div><h2>' + escapeHtml(integration.platform) + "</h2><p>" + escapeHtml(integration.provider) + '</p></div><span class="connection-status ' + (connected ? "active" : configured ? "demo" : "pending") + '">' + escapeHtml(status) + '</span></div><div class="integration-account"><span>Cuenta autorizada</span><strong>' + (connected ? escapeHtml(real.connectedAccount) : "Sin cuenta conectada") + '</strong></div><div class="tag-list">' + integration.metrics.map(function (metric) { return "<span>" + escapeHtml(metric) + "</span>"; }).join("") + '</div><div class="integration-footer"><small>' + (real && real.lastSyncAt ? "Ultima sincronizacion: " + escapeHtml(real.lastSyncAt) : "Sin sincronizacion oficial") + "</small>" + action + "</div></article>";
   }).join("");
+  const oauthNotice = state.oauthNotice
+    ? '<section class="info-banner ' + (state.oauthNotice.status === "success" ? "success-banner" : "error-banner") + '"><strong>' + (state.oauthNotice.status === "success" ? "YouTube conectado correctamente" : "No se pudo conectar YouTube") + '</strong><p>' + (state.oauthNotice.status === "success" ? "La cuenta fue autorizada, sincronizada y guardada de forma segura." : "La autorizacion no se completo. Revisa la configuracion OAuth o vuelve a intentarlo.") + "</p></section>"
+    : "";
   const configuration = can("integrations:write")
-    ? '<section class="panel"><div class="panel-header"><div><p class="eyebrow">Credenciales OAuth</p><h2>Configurar integracion</h2></div></div><form id="integration-form" class="form-grid"><label>Plataforma<select name="platform" required><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option><option value="x">X / Twitter</option></select></label><label>Nombre interno<input name="displayName" required maxlength="80" placeholder="Cuenta corporativa" /></label><label>Client ID<input name="clientId" required autocomplete="off" /></label><label>Client secret<input name="clientSecret" type="password" required minlength="8" autocomplete="new-password" /></label><div class="form-actions"><button class="primary-button" type="submit">Guardar cifrado</button></div></form><div id="integration-message" class="form-message" hidden></div></section>'
+    ? '<section class="panel"><div class="panel-header"><div><p class="eyebrow">Configuracion tecnica</p><h2>Credenciales de proveedor</h2></div></div><form id="integration-form" class="form-grid"><label>Plataforma<select name="platform" required><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option><option value="x">X / Twitter</option></select></label><label>Nombre interno<input name="displayName" required maxlength="80" placeholder="Cuenta corporativa" /></label><label>Client ID<input name="clientId" required autocomplete="off" /></label><label>Client secret<input name="clientSecret" type="password" required minlength="8" autocomplete="new-password" /></label><div class="form-actions"><button class="primary-button" type="submit">Guardar cifrado</button></div></form><div id="integration-message" class="form-message" hidden></div><p class="form-note">Las credenciales de YouTube usadas por el flujo oficial se configuran preferentemente mediante variables de entorno del servidor.</p></section>'
     : state.apiAvailable
       ? '<section class="info-banner"><strong>Acceso protegido</strong><p>Inicia sesion con rol Administrador o Analista para configurar credenciales. Nunca se solicitan contrasenas de redes sociales.</p></section>'
       : '<section class="info-banner"><strong>Demostracion online</strong><p>La configuracion real de credenciales esta disponible al ejecutar el sistema local con su backend seguro.</p></section>';
-  return configuration + '<section class="integration-grid">' + cards + '</section><section class="info-banner"><strong>OAuth oficial pendiente de credenciales</strong><p>El backend ya cifra y persiste la configuracion. La autorizacion final depende de registrar este proyecto y obtener permisos en cada plataforma.</p></section>';
+  return oauthNotice + configuration + '<div id="oauth-message" class="form-message" hidden></div><section class="integration-grid">' + cards + '</section><section class="info-banner"><strong>Integracion oficial por etapas</strong><p>YouTube dispone del flujo completo OAuth, sincronizacion y datos reales. Instagram, Facebook, TikTok, LinkedIn y X se incorporaran reutilizando esta arquitectura cuando sus aplicaciones y permisos esten aprobados.</p></section>';
 }
 
 function renderSettingsPage() {
@@ -480,24 +703,30 @@ function renderAccountPage() {
 
 function renderPostsTable(posts) {
   if (!posts.length) return emptyState("Ajusta los filtros para encontrar publicaciones.");
-  return '<div class="table-wrap"><table class="posts-table"><thead><tr><th>Fecha</th><th>Red</th><th>Formato</th><th>Contenido</th><th>Alcance</th><th>Impresiones</th><th>Interacciones</th><th>Engagement</th><th>Estado</th></tr></thead><tbody>' +
+  const isLive = Boolean(state.liveData?.accounts?.length);
+  return '<div class="table-wrap"><table class="posts-table"><thead><tr><th>Fecha</th><th>Red</th><th>Formato</th><th>Contenido</th><th>' + (isLive ? "Vistas" : "Alcance") + '</th><th>Impresiones</th><th>Interacciones</th><th>' + (isLive ? "Interacciones / vistas" : "Engagement") + '</th><th>Estado</th></tr></thead><tbody>' +
     posts.map(function (post) {
       const rate = engagementRate(post);
       const performance = classifyPerformance(rate);
-      return "<tr><td>" + escapeHtml(post.date) + "</td><td><strong>" + escapeHtml(post.platform) + "</strong></td><td>" + escapeHtml(post.format) + "</td><td><span class=\"post-title\">" + escapeHtml(post.description) + "</span><small>" + escapeHtml(post.topic) + " · " + escapeHtml(post.campaign) + "</small></td><td>" + number.format(post.reach) + "</td><td>" + number.format(post.impressions) + "</td><td>" + number.format(totalInteractions(post)) + "</td><td>" + rate.toFixed(2) + '%</td><td><span class="status ' + performance + '">' + statusLabel(performance) + "</span></td></tr>";
+      return "<tr><td>" + escapeHtml(post.date) + "</td><td><strong>" + escapeHtml(post.platform) + "</strong></td><td>" + escapeHtml(post.format) + "</td><td><span class=\"post-title\">" + escapeHtml(post.description) + "</span><small>" + escapeHtml(post.topic) + " · " + escapeHtml(post.campaign) + "</small></td><td>" + (isLive ? number.format(post.views) : number.format(post.reach)) + "</td><td>" + (isLive ? "No disponible" : number.format(post.impressions)) + "</td><td>" + number.format(totalInteractions(post)) + "</td><td>" + rate.toFixed(2) + '%</td><td><span class="status ' + performance + '">' + statusLabel(performance) + "</span></td></tr>";
     }).join("") + "</tbody></table></div>";
 }
 
-function renderSummaryTable(rows) {
+function renderSummaryTable(rows, officialViewsOnly = false) {
   if (!rows.length) return emptyState("No existen datos suficientes para agrupar.");
+  if (officialViewsOnly) {
+    return '<div class="table-wrap"><table><thead><tr><th>Grupo</th><th>Videos</th><th>Vistas</th><th>Interacciones</th><th>Interacciones / vistas</th></tr></thead><tbody>' +
+      rows.map(function (row) { return "<tr><td><strong>" + escapeHtml(row.name) + "</strong></td><td>" + row.posts + "</td><td>" + number.format(row.views) + "</td><td>" + number.format(row.interactions) + "</td><td>" + row.engagement.toFixed(2) + "%</td></tr>"; }).join("") + "</tbody></table></div>";
+  }
   return '<div class="table-wrap"><table><thead><tr><th>Grupo</th><th>Publicaciones</th><th>Alcance</th><th>Impresiones</th><th>Interacciones</th><th>Engagement</th></tr></thead><tbody>' +
     rows.map(function (row) { return "<tr><td><strong>" + escapeHtml(row.name) + "</strong></td><td>" + row.posts + "</td><td>" + number.format(row.reach) + "</td><td>" + number.format(row.impressions) + "</td><td>" + number.format(row.interactions) + "</td><td>" + row.engagement.toFixed(2) + "%</td></tr>"; }).join("") + "</tbody></table></div>";
 }
 
 function renderRanking(posts) {
   if (!posts.length) return emptyState("No hay publicaciones para clasificar.");
+  const rateLabel = state.liveData?.accounts?.length ? " interacciones por vistas" : " engagement";
   return '<div class="rank-list">' + posts.map(function (post, index) {
-    return '<article class="rank-item"><span>' + (index + 1) + "</span><div><strong>" + escapeHtml(post.description) + "</strong><small>" + escapeHtml(post.platform) + " · " + escapeHtml(post.format) + " · " + engagementRate(post).toFixed(2) + "% engagement</small></div></article>";
+    return '<article class="rank-item"><span>' + (index + 1) + "</span><div><strong>" + escapeHtml(post.description) + "</strong><small>" + escapeHtml(post.platform) + " · " + escapeHtml(post.format) + " · " + engagementRate(post).toFixed(2) + "%" + rateLabel + "</small></div></article>";
   }).join("") + "</div>";
 }
 
@@ -513,22 +742,58 @@ function renderRecommendation(item) {
 }
 
 function buildReportHtml(data) {
+  const isLive = Boolean(state.liveData?.accounts?.length);
   const top = data.topPosts[0];
   const low = data.bottomPosts[0];
-  const generated = dateTime.format(new Date(sampleData.lastSync));
+  const generated = dateTime.format(new Date());
+  const views = data.posts.reduce(function (total, post) { return total + Number(post.views || 0); }, 0);
+  const interactions = data.posts.reduce(function (total, post) { return total + totalInteractions(post); }, 0);
+  const officialRate = views ? (interactions / views) * 100 : 0;
+  const summary = isLive
+    ? "La salud parcial alcanza <strong>" + data.audit.totalScore + "/100 (" + escapeHtml(data.audit.label) + ")</strong>. El periodo registra " + number.format(views) + " vistas y " + decimal.format(officialRate) + "% de interacciones por vistas sobre " + data.kpis.posts + " videos."
+    : "La salud general alcanza <strong>" + data.audit.totalScore + "/100 (" + escapeHtml(data.audit.label) + ")</strong>. El periodo registra " + number.format(data.kpis.reach) + " de alcance y " + decimal.format(data.kpis.engagement) + "% de engagement sobre " + data.kpis.posts + " publicaciones.";
+  const reportKpis = isLive
+    ? '<div><span>Suscriptores</span><strong>' + (data.accounts.some(function (account) { return account.followers != null; }) ? number.format(data.kpis.followers) : "No disponible") + '</strong></div><div><span>Vistas</span><strong>' + number.format(views) + '</strong></div><div><span>Interacciones</span><strong>' + number.format(interactions) + '</strong></div><div><span>Interacciones / vistas</span><strong>' + decimal.format(officialRate) + '%</strong></div>'
+    : '<div><span>Seguidores</span><strong>' + number.format(data.kpis.followers) + '</strong></div><div><span>Alcance</span><strong>' + number.format(data.kpis.reach) + '</strong></div><div><span>Impresiones</span><strong>' + number.format(data.kpis.impressions) + '</strong></div><div><span>Engagement</span><strong>' + decimal.format(data.kpis.engagement) + "%</strong></div>";
   return '<header class="report-cover"><span>Social Audit Pro</span><p>Reporte ejecutivo de auditoria y rendimiento</p><h2>' + escapeHtml(state.platform === "all" ? "Ecosistema social multicanal" : state.platform) + '</h2><div><span>Periodo analizado: ' + escapeHtml(state.period) + ' dias</span><span>Generado: ' + escapeHtml(generated) + '</span></div></header>' +
-    '<section><h3>1. Resumen ejecutivo</h3><p>La salud general alcanza <strong>' + data.audit.totalScore + "/100 (" + escapeHtml(data.audit.label) + ")</strong>. El periodo registra " + number.format(data.kpis.reach) + " de alcance y " + decimal.format(data.kpis.engagement) + "% de engagement sobre " + data.kpis.posts + " publicaciones.</p></section>" +
+    '<section><h3>1. Resumen ejecutivo</h3><p>' + summary + "</p></section>" +
     '<section><h3>2. Cuentas analizadas</h3><p>' + escapeHtml(data.accounts.map(function (account) { return account.platform + " " + account.handle; }).join(", ") || "Ninguna cuenta con los filtros actuales") + '.</p></section>' +
-    '<section><h3>3. KPIs principales</h3><div class="report-kpis"><div><span>Seguidores</span><strong>' + number.format(data.kpis.followers) + '</strong></div><div><span>Alcance</span><strong>' + number.format(data.kpis.reach) + '</strong></div><div><span>Impresiones</span><strong>' + number.format(data.kpis.impressions) + '</strong></div><div><span>Engagement</span><strong>' + decimal.format(data.kpis.engagement) + "%</strong></div></div></section>" +
+    '<section><h3>3. KPIs principales</h3><div class="report-kpis">' + reportKpis + "</div></section>" +
     '<section><h3>4. Analisis de contenido</h3><p><strong>Mejor publicacion:</strong> ' + escapeHtml(top ? top.description : "Sin datos") + '.</p><p><strong>Publicacion de menor rendimiento:</strong> ' + escapeHtml(low ? low.description : "Sin datos") + '.</p></section>' +
     '<section><h3>5. Problemas y oportunidades</h3>' + (data.anomalies.length ? "<ul>" + data.anomalies.slice(0, 5).map(function (item) { return "<li><strong>" + escapeHtml(item.type) + ":</strong> " + escapeHtml(item.evidence) + "</li>"; }).join("") + "</ul>" : "<p>No se detectaron anomalias con los filtros actuales.</p>") + '</section>' +
     '<section><h3>6. Recomendaciones</h3>' + (data.recommendations.length ? "<ol>" + data.recommendations.map(function (item) { return "<li><strong>" + escapeHtml(item.priority) + ":</strong> " + escapeHtml(item.action) + "</li>"; }).join("") + "</ol>" : "<p>Mantener monitoreo y ampliar el historial.</p>") + '</section>' +
-    '<section><h3>7. Conclusion</h3><p>Las conclusiones se basan exclusivamente en los datos demostrativos visibles y en reglas documentadas. Las hipotesis deben validarse con mayor historial y contexto de campana antes de tomar decisiones definitivas.</p></section>';
+    '<section><h3>7. Conclusion</h3><p>' + (isLive ? "Las conclusiones se basan exclusivamente en los datos oficiales disponibles para la cuenta autorizada. Alcance, impresiones y demografia no se estiman cuando la API no los proporciona." : "Las conclusiones se basan exclusivamente en los datos demostrativos visibles y en reglas documentadas. Las hipotesis deben validarse con mayor historial y contexto de campana antes de tomar decisiones definitivas.") + "</p></section>";
 }
 
 function buildDownloadDocument(data) {
   const body = buildReportHtml(data);
   return '<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reporte Social Audit Pro</title><style>body{font-family:Arial,sans-serif;color:#17212b;max-width:900px;margin:40px auto;line-height:1.55}header{border-bottom:3px solid #0f766e;padding-bottom:24px}section{margin:32px 0}.report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.report-kpis div{border:1px solid #d9e0e8;padding:14px}.report-kpis span,.report-kpis strong{display:block}.report-kpis strong{font-size:22px;margin-top:8px}@media print{body{margin:0}}</style></head><body>' + body + "</body></html>";
+}
+
+function buildReportPayload(data) {
+  if (!state.liveData?.accounts?.length) {
+    return {
+      dataSource: "demo",
+      kpis: data.kpis,
+      audit: data.audit,
+      anomalies: data.anomalies,
+      recommendations: data.recommendations
+    };
+  }
+  const views = data.posts.reduce(function (total, post) { return total + Number(post.views || 0); }, 0);
+  const interactions = data.posts.reduce(function (total, post) { return total + totalInteractions(post); }, 0);
+  return {
+    dataSource: "official",
+    kpis: {
+      subscribers: data.accounts.some(function (account) { return account.followers != null; }) ? data.kpis.followers : null,
+      views,
+      interactions,
+      interactionRate: views ? interactions / views * 100 : 0
+    },
+    audit: data.audit,
+    anomalies: data.anomalies,
+    recommendations: data.recommendations
+  };
 }
 
 function uniqueValues(items, field) {
@@ -547,11 +812,11 @@ function optionList(values, selected, allLabel) {
 
 function getPostsForAccounts(accounts) {
   const ids = new Set(accounts.map(function (account) { return account.id; }));
-  return sampleData.posts.filter(function (post) { return ids.has(post.accountId); });
+  return activeData().posts.filter(function (post) { return ids.has(post.accountId); });
 }
 
 function updateAccountOptions() {
-  const candidates = sampleData.accounts.filter(function (account) {
+  const candidates = activeData().accounts.filter(function (account) {
     return state.platform === "all" || account.platform === state.platform;
   });
   elements.account.innerHTML = selectedOption("all", "Todas las cuentas", state.account) + candidates.map(function (account) {
@@ -570,7 +835,10 @@ function render() {
   elements.eyebrow.textContent = route.eyebrow;
   elements.title.textContent = route.title;
   elements.description.textContent = route.description;
-  elements.sync.textContent = "Ultima actualizacion: " + dateTime.format(new Date(sampleData.lastSync));
+  const lastSync = activeData().lastSync;
+  elements.sync.textContent = lastSync
+    ? "Ultima actualizacion: " + dateTime.format(new Date(lastSync))
+    : "Sin sincronizacion disponible";
   elements.filters.hidden = ["integraciones", "configuracion", "cuenta"].includes(routeName);
   elements.reportShortcut.hidden = routeName === "reportes";
   elements.authArea.innerHTML = !state.apiAvailable
@@ -637,12 +905,7 @@ function bindViewEvents(routeName, data) {
               title: "Reporte ejecutivo de redes sociales",
               platform: state.platform === "all" ? "Todas las redes" : state.platform,
               periodDays: Number(state.period),
-              content: {
-                kpis: data.kpis,
-                audit: data.audit,
-                anomalies: data.anomalies,
-                recommendations: data.recommendations
-              }
+              content: buildReportPayload(data)
             })
           });
           if (!response.ok) {
@@ -675,10 +938,7 @@ function bindViewEvents(routeName, data) {
               content: {
                 periodDays: Number(state.period),
                 platform: state.platform,
-                kpis: data.kpis,
-                audit: data.audit,
-                anomalies: data.anomalies,
-                recommendations: data.recommendations
+                ...buildReportPayload(data)
               }
             }
           });
@@ -715,6 +975,35 @@ function bindViewEvents(routeName, data) {
         }
       });
     }
+    document.querySelectorAll("[data-oauth-platform]").forEach(function (button) {
+      button.addEventListener("click", async function () {
+        const message = document.querySelector("#oauth-message");
+        button.disabled = true;
+        try {
+          const result = await apiRequest("/integrations/" + button.dataset.oauthPlatform + "/oauth/start");
+          window.location.assign(result.authorizationUrl);
+        } catch (error) {
+          button.disabled = false;
+          showMessage(message, error.message, true);
+        }
+      });
+    });
+    document.querySelectorAll("[data-sync-platform]").forEach(function (button) {
+      button.addEventListener("click", async function () {
+        const message = document.querySelector("#oauth-message");
+        button.disabled = true;
+        try {
+          const result = await apiRequest("/integrations/" + button.dataset.syncPlatform + "/sync", { method: "POST" });
+          state.persistedIntegrations = null;
+          await loadLiveData();
+          await hydrateRoute("integraciones");
+          showMessage(document.querySelector("#oauth-message"), "Sincronizacion completada: " + result.recordsImported + " registros procesados.", false);
+        } catch (error) {
+          button.disabled = false;
+          showMessage(message, error.message, true);
+        }
+      });
+    });
   }
   if (routeName === "configuracion") {
     const form = document.querySelector("#user-form");
@@ -770,6 +1059,7 @@ function bindViewEvents(routeName, data) {
           state.needsInitialAdmin = false;
           state.users = null;
           state.persistedIntegrations = null;
+          await loadLiveData();
           window.location.hash = "#/dashboard";
           render();
         } catch (error) {
@@ -785,6 +1075,7 @@ function bindViewEvents(routeName, data) {
         state.csrfToken = null;
         state.users = null;
         state.persistedIntegrations = null;
+        state.liveData = null;
         window.location.hash = "#/dashboard";
         render();
       });
@@ -849,4 +1140,5 @@ updateAccountOptions();
 bindGlobalEvents();
 if (!window.location.hash) window.location.hash = "#/dashboard";
 await bootstrapAuth();
+await loadLiveData();
 render();

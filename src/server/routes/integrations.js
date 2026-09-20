@@ -1,14 +1,35 @@
 import { Router } from "express";
+import { randomBytes } from "node:crypto";
 import { logActivity } from "../database.js";
 import { requireAuth, requireCsrf, requirePermission } from "../middleware.js";
-import { encryptSecret } from "../security.js";
+import { encryptSecret, hashToken } from "../security.js";
+import {
+  getUserConnection,
+  markConnectionError,
+  persistOAuthSync,
+  readConnectionTokens
+} from "../integrations/oauth-storage.js";
 
 const MAX_IMPORT_ITEMS = 500;
 
-export function createIntegrationsRouter({ database, encryptionSecret }) {
+export function createIntegrationsRouter({
+  database,
+  encryptionSecret,
+  youtubeProvider,
+  appBaseUrl = "http://127.0.0.1:4173"
+}) {
   const router = Router();
 
-  router.get("/", requireAuth, (_request, response) => {
+  function callbackRedirect(status, reason) {
+    const url = new URL(appBaseUrl);
+    url.searchParams.set("oauth", "youtube");
+    url.searchParams.set("status", status);
+    if (reason) url.searchParams.set("reason", reason);
+    url.hash = "/integraciones";
+    return url.toString();
+  }
+
+  router.get("/", requireAuth, (request, response) => {
     const integrations = database.prepare(
       `SELECT p.slug AS platform, p.name,
               COALESCE(i.status, 'not_configured') AS status,
@@ -21,8 +42,118 @@ export function createIntegrationsRouter({ database, encryptionSecret }) {
        LEFT JOIN social_accounts a ON a.integration_id = i.id
        GROUP BY p.slug, p.name, i.id
        ORDER BY p.name`
-    ).all();
+    ).all().map((integration) => {
+      const connection = getUserConnection(database, request.user.id, integration.platform);
+      return {
+        ...integration,
+        status: connection?.status || integration.status,
+        oauthAvailable: integration.platform === "youtube" && Boolean(youtubeProvider?.configured),
+        connectionId: connection?.id || null,
+        connectedAccount: connection?.displayName || null,
+        lastSyncAt: connection?.lastSyncAt || integration.lastSyncAt,
+        accountCount: connection ? 1 : 0
+      };
+    });
     response.json({ integrations });
+  });
+
+  router.get("/youtube/oauth/start", requirePermission("integrations:write"), (request, response) => {
+    if (!youtubeProvider?.configured) {
+      return response.status(503).json({
+        error: "youtube_not_configured",
+        message: "Configura las credenciales OAuth de YouTube en el servidor."
+      });
+    }
+    if (!encryptionSecret) {
+      return response.status(503).json({
+        error: "encryption_not_configured",
+        message: "Configura TOKEN_ENCRYPTION_KEY antes de conectar una cuenta."
+      });
+    }
+
+    database.prepare("DELETE FROM oauth_states WHERE expires_at <= CURRENT_TIMESTAMP").run();
+    const state = randomBytes(32).toString("base64url");
+    database.prepare(
+      `INSERT INTO oauth_states (state_hash, user_id, platform_slug, expires_at)
+       VALUES (?, ?, 'youtube', datetime('now', '+10 minutes'))`
+    ).run(hashToken(state), request.user.id);
+    return response.json({ authorizationUrl: youtubeProvider.getAuthorizationUrl(state) });
+  });
+
+  router.get("/youtube/oauth/callback", async (request, response) => {
+    const state = String(request.query.state || "");
+    const stateHash = hashToken(state);
+    const oauthState = database.prepare(
+      `SELECT s.user_id AS userId
+       FROM oauth_states s
+       JOIN users u ON u.id = s.user_id AND u.status = 'active'
+       WHERE s.state_hash = ? AND s.platform_slug = 'youtube'
+         AND s.expires_at > CURRENT_TIMESTAMP`
+    ).get(stateHash);
+    database.prepare("DELETE FROM oauth_states WHERE state_hash = ?").run(stateHash);
+
+    if (!oauthState) return response.redirect(callbackRedirect("error", "invalid_state"));
+    if (request.query.error) return response.redirect(callbackRedirect("error", "authorization_denied"));
+    const code = String(request.query.code || "");
+    if (!code) return response.redirect(callbackRedirect("error", "missing_code"));
+
+    try {
+      const exchangedTokens = await youtubeProvider.exchangeCode(code);
+      const data = await youtubeProvider.fetchData(exchangedTokens);
+      const result = persistOAuthSync({
+        database,
+        encryptionSecret,
+        userId: oauthState.userId,
+        platform: "youtube",
+        data,
+        tokens: data.tokens
+      });
+      logActivity(database, {
+        userId: oauthState.userId,
+        action: "oauth.youtube_connected",
+        entityType: "oauth_connection",
+        entityId: result.connectionId,
+        metadata: { accountId: result.accountId, recordsImported: result.recordsImported },
+        ipAddress: request.ip
+      });
+      return response.redirect(callbackRedirect("success"));
+    } catch (error) {
+      if (!error.statusCode || error.statusCode >= 500) {
+        console.error("No se pudo completar OAuth de YouTube:", error.message);
+      }
+      return response.redirect(callbackRedirect("error", "provider_error"));
+    }
+  });
+
+  router.post("/youtube/sync", requirePermission("sync:run"), requireCsrf, async (request, response, next) => {
+    const connection = getUserConnection(database, request.user.id, "youtube");
+    if (!connection) {
+      return response.status(404).json({ error: "connection_not_found", message: "Conecta primero una cuenta de YouTube." });
+    }
+    try {
+      const tokens = readConnectionTokens(connection, encryptionSecret);
+      const data = await youtubeProvider.fetchData(tokens);
+      const result = persistOAuthSync({
+        database,
+        encryptionSecret,
+        userId: request.user.id,
+        platform: "youtube",
+        data,
+        tokens: data.tokens
+      });
+      logActivity(database, {
+        userId: request.user.id,
+        action: "sync.youtube_completed",
+        entityType: "oauth_connection",
+        entityId: connection.id,
+        metadata: { recordsImported: result.recordsImported },
+        ipAddress: request.ip
+      });
+      return response.json(result);
+    } catch (error) {
+      markConnectionError(database, connection.id, error);
+      return next(error);
+    }
   });
 
   router.post("/:platform/configure", requirePermission("integrations:write"), requireCsrf, (request, response) => {

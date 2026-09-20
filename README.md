@@ -36,6 +36,7 @@ Incluye auditoria, analitica, monitoreo, insights, recomendaciones, reportes, ge
 - Reportes persistentes y exportacion profesional a PDF.
 - Registro, inicio y cierre de sesion con permisos por rol.
 - Gestion real de usuarios e integraciones desde el backend.
+- Conexion OAuth oficial de YouTube, sincronizacion manual y uso automatico de datos reales en los modulos existentes.
 - Importacion normalizada de cuentas, publicaciones e historicos.
 
 ## Tecnologias utilizadas
@@ -44,11 +45,12 @@ Incluye auditoria, analitica, monitoreo, insights, recomendaciones, reportes, ge
 - Node.js y Express para el servidor y la API REST.
 - SQLite con `better-sqlite3` para persistencia local.
 - PDFKit para reportes PDF.
+- Google APIs Node.js Client para OAuth, YouTube Data API y YouTube Analytics API.
 - `node:test` y Supertest para pruebas unitarias y de API.
 
 ## Arquitectura general
 
-La aplicacion separa frontend, API, autenticacion, persistencia, analitica y reportes. La capa de integraciones ya almacena configuracion cifrada e importa datos normalizados; los flujos OAuth y la consulta automatica de APIs oficiales siguen pendientes de credenciales aprobadas. Ver `docs/07-arquitectura.md`.
+La aplicacion separa frontend, API, autenticacion, persistencia, analitica y reportes. YouTube implementa el primer flujo completo OAuth -> API oficial -> normalizacion -> SQLite -> dashboard. La misma arquitectura queda preparada para incorporar los demas proveedores. Ver `docs/07-arquitectura.md`.
 
 ## Estructura de carpetas
 
@@ -86,11 +88,19 @@ La aplicacion separa frontend, API, autenticacion, persistencia, analitica y rep
 npm install
 ```
 
-Copiar `.env.example` a `.env` y reemplazar `TOKEN_ENCRYPTION_KEY` por un secreto aleatorio largo antes de cargar credenciales reales.
+Copiar `.env.example` a `.env`, reemplazar `TOKEN_ENCRYPTION_KEY` por un secreto aleatorio largo y completar las credenciales de YouTube antes de conectar una cuenta real.
 
 ## Configuracion
 
 No se deben versionar secretos ni credenciales. Las variables necesarias se documentan en `.env.example`.
+
+Para habilitar YouTube se deben activar YouTube Data API v3 y YouTube Analytics API en Google Cloud, crear un cliente OAuth de tipo aplicacion web y registrar exactamente esta URL local:
+
+```text
+http://127.0.0.1:4173/api/v1/integrations/youtube/oauth/callback
+```
+
+Las variables son `YOUTUBE_OAUTH_CLIENT_ID`, `YOUTUBE_OAUTH_CLIENT_SECRET` y `YOUTUBE_OAUTH_REDIRECT_URI`. La guia completa esta en `docs/21-integracion-youtube.md`.
 
 ## Como ejecutar el proyecto
 
@@ -98,7 +108,7 @@ No se deben versionar secretos ni credenciales. Las variables necesarias se docu
 npm start
 ```
 
-Luego abrir `http://localhost:4173`.
+Luego abrir `http://127.0.0.1:4173`.
 
 ## Demostracion online
 
@@ -112,7 +122,7 @@ En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues
 
 ## Estado actual
 
-Version `v0.3.0` en desarrollo: frontend analitico, API real, persistencia SQLite, autenticacion, roles, configuracion cifrada, historicos importados y exportacion PDF. Los conectores OAuth oficiales aun no realizan extraccion automatica.
+Version `v0.4.0` en desarrollo: YouTube ya dispone del primer conector OAuth oficial de extremo a extremo. Al conectar una cuenta, sus datos oficiales sustituyen los datos demo para ese usuario; las metricas no disponibles no se estiman.
 
 ## Funcionalidades terminadas
 
@@ -126,14 +136,17 @@ Version `v0.3.0` en desarrollo: frontend analitico, API real, persistencia SQLit
 - Registro inicial, login, sesiones, CSRF y permisos para Administrador, Analista y Cliente.
 - Usuarios, integraciones, historicos, publicaciones, reportes y actividad persistentes.
 - Credenciales de integracion cifradas en reposo.
+- Tokens OAuth de YouTube cifrados en reposo, estado de autorizacion de un solo uso y renovacion oficial mediante refresh token.
+- Sincronizacion de canal, videos, metricas disponibles e historicos de YouTube sin duplicados.
+- Dashboard, auditoria, metricas, contenido y reportes alimentados por datos oficiales cuando existe una cuenta conectada.
 - Reporte ejecutivo descargable en PDF.
-- Quince pruebas automatizadas exitosas.
+- Diecisiete pruebas automatizadas exitosas.
 
 ## Funcionalidades pendientes
 
-- Flujos OAuth y conectores de lectura para las APIs oficiales.
-- Renovacion automatica de tokens y sincronizacion programada.
-- Sustituir los datos demo del dashboard por consultas completas a los historicos persistidos.
+- Conectores OAuth oficiales de Instagram, Facebook, TikTok, LinkedIn y X.
+- Sincronizacion programada y reintentos para conexiones oficiales.
+- Ampliar el uso de historicos persistidos a comparativas multicuenta y datos de audiencia cuando las APIs los permitan.
 - Aislamiento de datos por organizacion/cliente.
 - Endurecimiento para despliegue publico, recuperacion de contrasena y segundo factor.
 
@@ -158,3 +171,4 @@ Documentos clave:
 - `v0.1.0` - Formalizacion de requisitos y MVP inicial de dashboard analitico.
 - `v0.2.0` - Separacion de modulos, ampliacion analitica y reporte HTML.
 - `v0.3.0` - Backend, persistencia, autenticacion, roles, integraciones configurables y PDF.
+- `v0.4.0` - Primer conector OAuth oficial completo para YouTube y dashboard con datos reales por usuario.

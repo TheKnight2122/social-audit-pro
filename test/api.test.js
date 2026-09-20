@@ -12,11 +12,54 @@ function binaryParser(response, callback) {
 
 test("flujo de API, autenticacion, roles, persistencia e integraciones", async (context) => {
   const database = openDatabase(":memory:");
+  const youtubeProvider = {
+    configured: true,
+    getAuthorizationUrl(state) {
+      return "https://accounts.example.test/oauth?state=" + encodeURIComponent(state);
+    },
+    async exchangeCode(code) {
+      assert.equal(code, "valid-code");
+      return {
+        access_token: "youtube-access-token",
+        refresh_token: "youtube-refresh-token",
+        token_type: "Bearer",
+        expiry_date: Date.now() + 3600000,
+        scope: "youtube.readonly yt-analytics.readonly"
+      };
+    },
+    async fetchData(tokens) {
+      assert.equal(tokens.access_token, "youtube-access-token");
+      return {
+        account: {
+          externalId: "youtube-channel-1",
+          name: "Canal de prueba",
+          handle: "@canal_prueba",
+          metadata: { description: "Canal oficial", thumbnail: "https://example.test/channel.jpg" }
+        },
+        metrics: [
+          { key: "subscribers", value: 2400, recordedAt: "2026-09-20T10:00:00.000Z" },
+          { key: "analytics_views", value: 750, recordedAt: "2026-09-19T00:00:00.000Z" }
+        ],
+        posts: [{
+          externalId: "youtube-video-1",
+          publishedAt: "2026-09-19T12:00:00.000Z",
+          contentType: "video",
+          description: "Video obtenido de la API",
+          metrics: { views: 750, likes: 80, comments: 12, reach: null, impressions: null },
+          raw: { id: "youtube-video-1" }
+        }],
+        tokens,
+        syncedAt: "2026-09-20T10:00:00.000Z"
+      };
+    }
+  };
   const app = createApp({
     database,
     encryptionSecret: "test-encryption-secret-value",
     secureCookies: false,
-    loginLimit: { maxAttempts: 20 }
+    loginLimit: { maxAttempts: 20 },
+    appBaseUrl: "http://127.0.0.1:4173",
+    youtubeProvider
   });
   const admin = request.agent(app);
   const client = request.agent(app);
@@ -153,6 +196,71 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
       "/api/v1/analytics/posts?accountId=" + imported.body.accountId
     ).expect(200);
     assert.equal(posts.body.posts[0].metrics.reach, 5000);
+  });
+
+  await context.test("conecta YouTube por OAuth, cifra tokens y aisla los datos por usuario", async () => {
+    const integrations = await admin.get("/api/v1/integrations").expect(200);
+    const youtube = integrations.body.integrations.find((item) => item.platform === "youtube");
+    assert.equal(youtube.oauthAvailable, true);
+    assert.equal(youtube.connectionId, null);
+
+    const start = await admin.get("/api/v1/integrations/youtube/oauth/start").expect(200);
+    const authorizationUrl = new URL(start.body.authorizationUrl);
+    const oauthState = authorizationUrl.searchParams.get("state");
+    assert.ok(oauthState);
+
+    const callback = await request(app)
+      .get("/api/v1/integrations/youtube/oauth/callback")
+      .query({ code: "valid-code", state: oauthState })
+      .expect(302);
+    assert.match(callback.headers.location, /oauth=youtube/);
+    assert.match(callback.headers.location, /status=success/);
+
+    const stored = database.prepare(
+      `SELECT access_token_encrypted AS accessToken,
+              refresh_token_encrypted AS refreshToken
+       FROM oauth_connections WHERE platform_slug = 'youtube'`
+    ).get();
+    assert.notEqual(stored.accessToken, "youtube-access-token");
+    assert.equal(stored.accessToken.includes("youtube-access-token"), false);
+    assert.notEqual(stored.refreshToken, "youtube-refresh-token");
+
+    const replay = await request(app)
+      .get("/api/v1/integrations/youtube/oauth/callback")
+      .query({ code: "valid-code", state: oauthState })
+      .expect(302);
+    assert.match(replay.headers.location, /status=error/);
+    assert.match(replay.headers.location, /reason=invalid_state/);
+
+    const dashboard = await admin.get("/api/v1/analytics/dashboard").expect(200);
+    assert.equal(dashboard.body.source, "official");
+    assert.equal(dashboard.body.accounts[0].handle, "@canal_prueba");
+    assert.equal(dashboard.body.posts[0].views, 750);
+    assert.equal(dashboard.body.posts[0].reach, null);
+
+    const isolatedDashboard = await client.get("/api/v1/analytics/dashboard").expect(200);
+    assert.deepEqual(isolatedDashboard.body.accounts, []);
+    assert.deepEqual(isolatedDashboard.body.posts, []);
+
+    const secondStart = await client.get("/api/v1/integrations/youtube/oauth/start").expect(200);
+    const secondState = new URL(secondStart.body.authorizationUrl).searchParams.get("state");
+    const ownershipConflict = await request(app)
+      .get("/api/v1/integrations/youtube/oauth/callback")
+      .query({ code: "valid-code", state: secondState })
+      .expect(302);
+    assert.match(ownershipConflict.headers.location, /status=error/);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM oauth_connections").get().count, 1);
+
+    const synced = await admin.post("/api/v1/integrations/youtube/sync")
+      .set("x-csrf-token", adminCsrf)
+      .expect(200);
+    assert.equal(synced.body.recordsImported, 3);
+
+    const refreshed = await admin.get("/api/v1/integrations").expect(200);
+    const connected = refreshed.body.integrations.find((item) => item.platform === "youtube");
+    assert.equal(connected.status, "connected");
+    assert.equal(connected.connectedAccount, "Canal de prueba");
+    assert.equal(connected.accountCount, 1);
   });
 
   await context.test("guarda reportes y registra actividad", async () => {
