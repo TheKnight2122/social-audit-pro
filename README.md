@@ -163,6 +163,9 @@ Documentos clave:
 - `docs/12-pruebas.md`
 - `docs/19-estado-del-proyecto.md`
 - `docs/20-roadmap.md`
+- `docs/21-integracion-youtube.md`
+- `docs/22-documentacion-word.md`
+- `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/trazabilidad.md`
 
 ## Historial resumido de versiones

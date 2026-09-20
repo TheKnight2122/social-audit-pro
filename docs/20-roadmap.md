@@ -75,9 +75,11 @@ Estado: pendiente.
 
 ## Fase 8 - Documentacion final
 
-Estado: pendiente.
+Estado: en progreso.
 
-- Completar manuales, arquitectura, pruebas y estado final.
+- Manual visual Word creado con estado, funciones, arquitectura, seguridad, historial y guia rapida.
+- Capturas actuales de escritorio y movil incorporadas.
+- Pendiente mantener el manual, la arquitectura, las pruebas y el estado al dia hasta preparar la entrega final.
 
 ## Fase 9 - Version estable
 

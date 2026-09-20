@@ -31,6 +31,7 @@
 - Dashboard y modulos analiticos alimentados con datos oficiales para el usuario conectado.
 - Aislamiento por usuario para cuentas OAuth de YouTube.
 - Diecisiete pruebas automatizadas exitosas.
+- Manual visual Word de 16 paginas con capturas, diagramas y explicaciones para lectores tecnicos y no tecnicos.
 
 ## En desarrollo
 

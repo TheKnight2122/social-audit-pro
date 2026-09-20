@@ -19,6 +19,7 @@ La version actual incluye:
 - Generacion y descarga de reportes PDF mediante PDFKit.
 - Demostracion estatica publicada automaticamente en GitHub Pages.
 - Pruebas automatizadas para analitica, API, autenticacion, roles y persistencia.
+- Manual visual en Word con estado, capturas, arquitectura, seguridad, avances y guia de uso.
 
 YouTube cuenta con el primer conector OAuth oficial completo; requiere credenciales propias de Google para activarse. Los conectores restantes siguen pendientes de credenciales, permisos y aprobaciones de cada plataforma.
 
@@ -83,7 +84,8 @@ Antes de considerar terminado un cambio:
 3. Verificar la vista modificada en escritorio y movil cuando sea un cambio visual.
 4. Comprobar que no se hayan agregado secretos ni archivos temporales.
 5. Actualizar la documentacion cuando cambie el comportamiento o el alcance.
-6. Registrar el avance con un commit claro y subirlo a `main` para actualizar GitHub Pages.
+6. Actualizar el manual Word cuando el avance modifique funciones, arquitectura, seguridad, estado o uso.
+7. Registrar el avance con un commit claro y subirlo a `main` para actualizar GitHub Pages.
 
 ## Documentos de referencia
 
@@ -94,4 +96,6 @@ Leer primero:
 - `docs/15-seguridad.md`
 - `docs/19-estado-del-proyecto.md`
 - `docs/20-roadmap.md`
+- `docs/22-documentacion-word.md`
+- `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `CHANGELOG.md`

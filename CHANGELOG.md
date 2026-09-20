@@ -13,6 +13,7 @@ El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixe
 - Sincronizacion idempotente de canal, videos, metricas disponibles e historicos.
 - Endpoint analitico que alimenta las vistas existentes con datos oficiales del usuario conectado.
 - Pruebas de OAuth, cifrado de tokens, normalizacion, sincronizacion y aislamiento por usuario.
+- Manual visual en Word con capturas actuales, arquitectura, seguridad, historial, roadmap y guia de uso.
 
 ### Changed
 
