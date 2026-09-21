@@ -165,7 +165,9 @@ Documentos clave:
 - `docs/20-roadmap.md`
 - `docs/21-integracion-youtube.md`
 - `docs/22-documentacion-word.md`
+- `docs/23-informes-semanales.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
+- `docs/semanales/`
 - `docs/trazabilidad.md`
 
 ## Historial resumido de versiones

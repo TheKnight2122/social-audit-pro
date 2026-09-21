@@ -32,6 +32,7 @@
 - Aislamiento por usuario para cuentas OAuth de YouTube.
 - Diecisiete pruebas automatizadas exitosas.
 - Manual visual Word de 16 paginas con capturas, diagramas y explicaciones para lectores tecnicos y no tecnicos.
+- Sistema de informes semanales Word iniciado con los periodos del 7 al 13 y del 14 al 20 de septiembre de 2026.
 
 ## En desarrollo
 
