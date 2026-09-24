@@ -4,6 +4,8 @@
 
 El archivo `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx` resume el proyecto con lenguaje accesible, capturas actuales, diagramas y tablas. Complementa la documentacion tecnica en Markdown y sirve para presentaciones, revisiones y transferencia del proyecto.
 
+El archivo `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx` recorre el codigo real del repositorio mediante 21 capturas con archivo, rango de lineas, responsabilidad y relevancia. Esta pensado para incorporacion tecnica, revision del proyecto y transferencia a otros desarrolladores.
+
 ## Contenido
 
 - Estado funcional y diferencia entre version local y publica.
@@ -13,6 +15,8 @@ El archivo `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx` resume el proy
 - Historial de avances, trabajo pendiente y guia rapida.
 
 Las imagenes fuente se conservan en `docs/assets/manual/` para poder actualizar el documento sin reutilizar capturas antiguas.
+
+Las capturas de codigo se conservan en `docs/assets/codigo/` y deben regenerarse desde los archivos versionados cuando cambien los fragmentos documentados.
 
 ## Regla de mantenimiento
 

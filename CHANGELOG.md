@@ -14,6 +14,7 @@ El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixe
 - Endpoint analitico que alimenta las vistas existentes con datos oficiales del usuario conectado.
 - Pruebas de OAuth, cifrado de tokens, normalizacion, sincronizacion y aislamiento por usuario.
 - Manual visual en Word con capturas actuales, arquitectura, seguridad, historial, roadmap y guia de uso.
+- Guia visual del codigo en Word con 21 capturas explicadas de frontend, analitica, API, seguridad, datos, integraciones, pruebas y despliegue.
 - Informes Word separados para la semana actual y la anterior, con solicitudes, evidencias, resultados y pendientes.
 
 ### Changed

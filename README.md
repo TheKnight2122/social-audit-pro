@@ -166,7 +166,9 @@ Documentos clave:
 - `docs/21-integracion-youtube.md`
 - `docs/22-documentacion-word.md`
 - `docs/23-informes-semanales.md`
+- `docs/24-guia-visual-codigo.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
+- `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `docs/semanales/`
 - `docs/trazabilidad.md`
 
