@@ -11,6 +11,7 @@
 - Adaptadores multired y pruebas simuladas de normalizacion.
 - Publicacion estatica automatica y documentacion visual.
 - Copias SQLite cifradas y verificadas con restauracion controlada probada en datos desechables.
+- Logs HTTP JSON y metricas de proceso protegidas, con pruebas de privacidad y autenticacion operativa.
 
 ## Fase actual - Activacion controlada
 
@@ -26,7 +27,7 @@
 2. Portar persistencia y migraciones desde SQLite.
 3. Automatizar despliegues y transferencia externa/retencion de copias; probar recuperacion productiva.
 4. Separar API y trabajador con una cola compartida.
-5. Incorporar logs estructurados, metricas, trazas y alertas.
+5. Centralizar logs y metricas de proceso; incorporar trazas, colector y alertas externas.
 6. Ejecutar pruebas de carga y seguridad.
 
 ## Alta disponibilidad

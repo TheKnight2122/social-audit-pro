@@ -20,6 +20,7 @@ La version actual incluye:
 - Conectores implementados para YouTube, Instagram, Facebook, TikTok, LinkedIn y X.
 - Sincronizacion manual y programada mediante trabajador con arrendamientos.
 - Copias SQLite cifradas y verificadas; restauracion a ruta nueva con sesiones invalidadas y tareas pausadas.
+- Monitoreo HTTP con logs sin datos sensibles y metricas JSON globales protegidas por clave de operador.
 - Generacion y descarga de reportes PDF mediante PDFKit.
 - Demostracion estatica publicada automaticamente en GitHub Pages.
 - Pruebas automatizadas para analitica, API, autenticacion, roles y persistencia.
@@ -50,6 +51,7 @@ La demostracion publica es estatica. No debe almacenar usuarios, credenciales, s
 - `src/server/integrations/`: adaptadores OAuth y normalizacion por plataforma.
 - `src/server/sync-worker.js`: ejecucion programada con arrendamientos.
 - `src/server/backups.js` y `backup-worker.js`: respaldo cifrado, verificacion, restauracion y programacion opcional.
+- `src/server/observability.js`: correlacion HTTP, contadores acotados y acceso operativo independiente de roles de organizacion.
 - `migrations/`: esquema y migraciones de SQLite.
 - `test/`: pruebas unitarias y de integracion.
 - `docs/`: requisitos, arquitectura, seguridad, manuales, decisiones y roadmap.
@@ -84,7 +86,7 @@ npm run db:backup
 2. Validar cada conector con cuentas reales y completar revocaciones especificas.
 3. Desplegar backend, SMTP y secretos en un proveedor productivo.
 4. Migrar SQLite a PostgreSQL o equivalente antes de multiples servidores.
-5. Incorporar cola compartida, observabilidad, copias y pruebas de carga/seguridad.
+5. Incorporar cola compartida, monitoreo centralizado, trazas, alertas, copias externas y pruebas de carga/seguridad.
 
 ## Criterios para completar un avance
 

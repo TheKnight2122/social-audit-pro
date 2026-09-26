@@ -2,7 +2,7 @@
 
 ## Estado
 
-La version v0.5.1 cuenta con 34 pruebas automatizadas y una compilacion estatica reproducible.
+La version v0.5.2 cuenta con 42 pruebas automatizadas y una compilacion estatica reproducible.
 
 ## Cobertura actual
 
@@ -19,6 +19,7 @@ La version v0.5.1 cuenta con 34 pruebas automatizadas y una compilacion estatica
 - Copia cifrada de WAL, integridad, esquema y referencias; claves incorrectas y manipulacion.
 - Restauracion sin sobrescritura, invalidacion de sesiones/enlaces y pausa de tareas.
 - Recorrido CLI y trabajador de copias sin solapamiento, con programacion y apagado comprobados.
+- Monitoreo desactivado sin clave, autenticacion operativa, privacidad, correlacion, errores JSON/500/413, contadores, abortos y fallo del destino de logs.
 
 ## Comandos
 
@@ -27,16 +28,16 @@ npm test
 npm run build
 ```
 
-## Resultado v0.5.1
+## Resultado v0.5.2
 
-Fecha: 2026-09-25.
+Fecha: 2026-09-26.
 
-- 34 pruebas ejecutadas.
-- 34 exitosas.
+- 42 pruebas ejecutadas.
+- 42 exitosas.
 - 0 fallidas.
 - Compilacion estatica exitosa.
 - `git diff --check` sin errores.
-- `npm audit --omit=dev`: cero vulnerabilidades reportadas al consultar el registro.
+- Dependencias sin cambios en este avance. La consulta anterior de `npm audit --omit=dev` no reporto vulnerabilidades; no se repitio como parte de v0.5.2.
 - GitHub Actions ejecuta `npm ci` y `npm test` antes de generar y publicar la demostracion.
 
 ## Verificacion visual de la base v0.5.0

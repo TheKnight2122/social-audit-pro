@@ -8,6 +8,7 @@
 - Sesiones y limitador de acceso persistentes.
 - Tareas programadas con arrendamientos.
 - Endpoints de vida y disponibilidad.
+- Logs HTTP JSON, correlacion generada por el servidor y metricas JSON protegidas por clave operativa independiente.
 - Apagado ordenado de HTTP, trabajador y base.
 - Frontend estatico separable del backend.
 - Copias SQLite online cifradas, verificables y programables; restauracion a ruta nueva probada con datos desechables.
@@ -17,7 +18,7 @@
 - SQLite usa un archivo local y no es una base compartida para replicas.
 - No existe una cola externa para distribuir sincronizaciones.
 - Los archivos generados y copias no estan en almacenamiento de objetos.
-- No hay balanceador, descubrimiento, metricas, trazas ni alertas.
+- No hay balanceador, descubrimiento, centralizacion de metricas, trazas ni alertas.
 - Las migraciones no tienen aun un proceso coordinado entre replicas.
 
 ## Arquitectura objetivo

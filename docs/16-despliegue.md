@@ -42,6 +42,12 @@ Docker no estaba instalado en la maquina de desarrollo durante la validacion de 
 
 El servidor deja de declararse listo durante el apagado, detiene los trabajadores, espera sincronizacion y copia activas, cierra HTTP y despues cierra la base.
 
+## Monitoreo operativo
+
+Desde v0.5.2, cada solicitud emite un registro JSON a stdout y devuelve `X-Request-Id`. `GET /api/v1/operations/metrics` entrega estadisticas globales en JSON solo con `OPERATIONS_METRICS_TOKEN` configurado y la cabecera Bearer correcta. No usa permisos de organizaciones. Ver `docs/30-monitoreo-operativo.md`.
+
+Compose limita logs a tres archivos de 10 MB. La configuracion Docker sigue pendiente de ejecucion en un host con Docker. Fuera de Compose, el operador debe configurar rotacion y acceso a los logs.
+
 ## Copias
 
 Compose reserva `/app/backups` en un volumen independiente. Las copias estan desactivadas por defecto. Configurar una clave privada `BACKUP_ENCRYPTION_KEY` y `BACKUP_INTERVAL_HOURS` para habilitarlas. El volumen sigue en el mismo equipo: hace falta transferencia externa, control de espacio y retencion. Ver `docs/29-copias-y-restauracion.md`.

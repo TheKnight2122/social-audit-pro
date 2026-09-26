@@ -27,3 +27,5 @@ No se deben incluir nombres personales, contrasenas, tokens, credenciales, sesio
 La revision v0.5.0 agrega al manual principal un suplemento sobre organizaciones, seguridad de cuenta, sincronizacion automatica, conectores multired y preparacion productiva. Tambien incorpora el informe Word de la semana del 21 al 27 de septiembre de 2026.
 
 La revision v0.5.1 anade instrucciones de copia cifrada y recuperacion, evidencia de 34 pruebas y limites operativos. Mantiene el contenido anterior como registro historico y actualiza el informe de la misma semana.
+
+La revision v0.5.2 incorpora monitoreo HTTP, acceso por clave de operador, privacidad, limites y evidencia de 42 pruebas. Conserva el historial y actualiza el mismo informe semanal.

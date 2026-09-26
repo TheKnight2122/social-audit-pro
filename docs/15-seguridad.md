@@ -19,6 +19,8 @@
 - Ningun secreto real se incluye en el repositorio ni en GitHub Pages.
 - El servidor solo sirve los cinco archivos del frontend; base de datos, configuracion y codigo interno responden 404.
 - Las respuestas API usan `Cache-Control: no-store`.
+- Logs HTTP con campos permitidos: sin URL, consultas, cuerpos, cookies, cabeceras ni datos personales. Correlacion con `X-Request-Id` generado por el servidor.
+- Metricas operativas globales desactivadas sin clave propia; Bearer exclusivo del operador, no accesible por roles de organizaciones. Requiere HTTPS fuera de localhost.
 - Copias completas cifradas y autenticadas con clave independiente; verificacion antes de declarar exito.
 - Restauracion a ruta nueva, sin sobrescritura, con sesiones/enlaces/codigos de recuperacion invalidados y sincronizaciones pausadas.
 

@@ -1,6 +1,6 @@
 {
   "name": "social-audit-pro",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Plataforma web para auditoria y analisis profesional de redes sociales.",
   "type": "module",
   "scripts": {

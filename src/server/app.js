@@ -9,6 +9,7 @@ import { createReportsRouter } from "./routes/reports.js";
 import { createOrganizationsRouter } from "./routes/organizations.js";
 import { createYouTubeProvider } from "./integrations/youtube.js";
 import { createEmailService } from "./email.js";
+import { createObservability } from "./observability.js";
 import {
   sameOrigin,
   securityHeaders,
@@ -56,6 +57,8 @@ export function createApp({
   emailTransport,
   emailService,
   providers = {},
+  operationsToken = process.env.OPERATIONS_METRICS_TOKEN || "",
+  requestLog,
   readiness = () => true,
   trustProxy = process.env.TRUST_PROXY === "true" ? 1 : false
 }) {
@@ -63,11 +66,14 @@ export function createApp({
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", trustProxy);
+  const observability = createObservability({ token: operationsToken, log: requestLog });
+  app.use(observability.middleware);
   app.use(securityHeaders);
   app.use("/api", (_request, response, next) => {
     response.set("Cache-Control", "no-store");
     next();
   });
+  app.get("/api/v1/operations/metrics", observability.metrics);
   app.use(express.json({ limit: "256kb" }));
   app.use(sameOrigin);
   app.use(sessionLoader(database));
@@ -157,11 +163,13 @@ export function createApp({
   app.use((_request, response) => response.status(404).end());
 
   app.use((error, _request, response, _next) => {
-    const status = Number(error.statusCode || 500);
-    if (status >= 500) console.error(error);
+    if (response.headersSent) return response.destroy();
+    const candidate = Number(error.statusCode || error.status || 500);
+    const status = Number.isInteger(candidate) && candidate >= 400 && candidate <= 599 ? candidate : 500;
     response.status(status).json({
       error: status >= 500 ? "internal_error" : "request_error",
-      message: status >= 500 ? "Ocurrio un error interno." : error.message
+      message: status >= 500 ? "Ocurrio un error interno." :
+        error.type === "entity.parse.failed" ? "El cuerpo JSON no es valido." : error.message
     });
   });
 

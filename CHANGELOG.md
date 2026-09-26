@@ -4,6 +4,28 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.2] - 2026-09-26
+
+### Added
+
+- Logs HTTP JSON con identificador generado por el servidor, estado y duracion.
+- Metricas JSON por proceso: solicitudes, errores, abortos, latencias, memoria y tiempo activo.
+- Endpoint operativo desactivado sin clave y protegido por un secreto independiente.
+- Ocho pruebas de monitoreo y privacidad; manual e informe semanal actualizados.
+- Rotacion de logs configurada en Compose; pendiente de validacion en Docker.
+
+### Security
+
+- Los nuevos logs no incluyen URL, cuerpo, cookies, cabeceras ni datos de usuarios u organizaciones.
+- Los errores internos no imprimen objetos de excepcion y los errores JSON no reflejan el cuerpo recibido.
+- Los roles de organizaciones no conceden acceso a las metricas globales del proceso.
+
+### Limitations
+
+- Contadores en memoria que reinician con el proceso; sin colector, trazas ni alertas externas.
+- No activa el endpoint en la instalacion local ni cambia secretos del usuario.
+- No completa PostgreSQL, produccion ni alta disponibilidad.
+
 ## [v0.5.1] - 2026-09-25
 
 ### Added

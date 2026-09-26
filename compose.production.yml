@@ -2,6 +2,11 @@ services:
   app:
     build: .
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "127.0.0.1:4173:4173"
     environment:
@@ -14,6 +19,7 @@ services:
       BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-0}
       BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
       TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY}
+      OPERATIONS_METRICS_TOKEN: ${OPERATIONS_METRICS_TOKEN:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
