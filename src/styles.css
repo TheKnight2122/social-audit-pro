@@ -1393,6 +1393,34 @@ dd {
   font-size: 9px;
 }
 
+.sync-schedule {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(130px, 0.7fr) auto;
+  align-items: end;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-soft);
+}
+
+.sync-schedule label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.sync-schedule input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.sync-schedule button {
+  min-height: 34px;
+}
+
 .settings-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
@@ -1467,12 +1495,47 @@ dd {
   gap: 13px;
 }
 
+.auth-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.5fr);
+  align-items: start;
+  gap: 18px;
+  width: min(100%, 1120px);
+  margin: 30px auto;
+}
+
+.auth-workspace .auth-panel {
+  width: 100%;
+  margin: 0;
+}
+
+.password-help {
+  display: grid;
+  gap: 20px;
+  padding: 26px;
+}
+
+.password-help p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.account-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.85fr);
+  align-items: start;
+  gap: 18px;
+  width: min(100%, 1120px);
+  margin: 30px auto;
+}
+
 .account-panel {
   display: flex;
   align-items: flex-start;
   gap: 18px;
-  width: min(100%, 760px);
-  margin: 30px auto;
+  width: 100%;
+  margin: 0;
   padding: 30px;
 }
 
@@ -1490,6 +1553,116 @@ dd {
 
 .account-panel button {
   margin-top: 20px;
+}
+
+.organization-control {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.organization-control button {
+  margin-top: 0;
+}
+
+.account-security {
+  padding: 30px;
+}
+
+.account-security h2 {
+  margin-bottom: 18px;
+}
+
+.security-state {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  background: var(--panel-soft);
+}
+
+.security-state.success {
+  border-left-color: var(--good);
+}
+
+.security-state.warning {
+  border-left-color: var(--warn);
+}
+
+.security-state span,
+.mfa-setup p,
+.recovery-codes p {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.security-state button {
+  justify-self: start;
+  margin-top: 8px;
+}
+
+.security-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.security-form button {
+  min-height: 40px;
+}
+
+.mfa-setup {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.mfa-setup img {
+  display: block;
+  width: 150px;
+  height: 150px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.mfa-setup code,
+.recovery-codes code {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--panel-soft);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.mfa-setup .security-form {
+  grid-template-columns: 1fr;
+}
+
+.recovery-codes {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.recovery-codes > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 10px;
+}
+
+.danger-button {
+  color: var(--bad);
 }
 
 .inline-link {
@@ -1715,13 +1888,30 @@ dd {
   }
 
   .form-grid,
-  .auth-panel {
+  .auth-panel,
+  .auth-workspace,
+  .account-layout,
+  .sync-schedule,
+  .organization-control,
+  .security-form,
+  .mfa-setup {
     grid-template-columns: 1fr;
   }
 
   .auth-panel {
     gap: 22px;
     margin: 0;
+    padding: 20px;
+  }
+
+  .auth-workspace,
+  .account-layout {
+    margin: 0;
+  }
+
+  .account-panel,
+  .account-security,
+  .password-help {
     padding: 20px;
   }
 

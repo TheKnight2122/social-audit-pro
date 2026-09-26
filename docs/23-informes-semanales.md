@@ -8,6 +8,7 @@ La carpeta `docs/semanales/` conserva un informe Word por semana para resumir la
 
 - `Informe-semanal-2026-09-07-al-13.docx`: linea base anterior al inicio formal. No registra actividad porque no existen commits ni informes verificables en ese periodo.
 - `Informe-semanal-2026-09-14-al-20.docx`: resume la preparacion del repositorio, el MVP, las vistas independientes, el backend, la publicacion, la renovacion visual, YouTube OAuth y la documentacion Word.
+- `Informe-semanal-2026-09-21-al-27.docx`: registra organizaciones, seguridad de cuenta, sincronizacion programada, conectores multired y preparacion productiva, junto con los limites externos pendientes.
 
 ## Regla de mantenimiento
 

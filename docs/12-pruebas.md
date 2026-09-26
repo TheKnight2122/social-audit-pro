@@ -2,46 +2,51 @@
 
 ## Estado
 
-Existen pruebas unitarias del motor analitico y pruebas de integracion de la API con una base SQLite en memoria.
+La version v0.5.0 cuenta con 25 pruebas automatizadas y una compilacion estatica reproducible.
 
-## Estrategia
+## Cobertura actual
 
-- Pruebas unitarias.
-- Pruebas de integracion.
-- Pruebas funcionales.
-- Pruebas de validaciones.
-- Pruebas de errores.
-- Pruebas basicas de seguridad.
-- Pruebas manuales cuando correspondan.
+- Formulas, KPIs, auditoria, anomalias, filtros, rankings y comparativas.
+- Salud, cabeceras, autenticacion, sesiones, CSRF, roles y persistencia.
+- Registro inicial, verificacion de correo, recuperacion de contrasena y MFA TOTP.
+- Organizaciones y aislamiento de cuentas, reportes y analitica.
+- Cifrado de credenciales, tokens OAuth y verificadores PKCE.
+- OAuth y sincronizacion de YouTube.
+- Recorrido OAuth generico con PKCE desde autorizacion hasta persistencia.
+- Normalizacion simulada de TikTok, X, Facebook, Instagram y LinkedIn.
+- Reclamo atomico de tareas y ejecucion unica del trabajador programado.
+- Generacion de PDF valido.
 
-## Registro de pruebas
+## Comandos
 
-| ID | Tipo | Objetivo | Comando | Estado |
-|---|---|---|---|---|
-| TEST-AN-001 | Unitario | Variacion porcentual | `npm test` | Implementado |
-| TEST-AN-002 | Unitario | Engagement = interacciones / alcance x 100 | `npm test` | Implementado |
-| TEST-AN-003 | Unitario | Clasificacion de rendimiento | `npm test` | Implementado |
-| TEST-AN-004 | Unitario | KPIs agregados y auditoria | `npm test` | Implementado |
-| TEST-AN-005 | Unitario | Deteccion de anomalias | `npm test` | Implementado |
-| TEST-AN-006 | Unitario | Filtros por cuenta, tematica y campana | `npm test` | Implementado |
-| TEST-AN-007 | Unitario | Ordenamiento, agrupacion y patron de contenido | `npm test` | Implementado |
-| TEST-AN-008 | Unitario | Comparativa normalizada entre plataformas | `npm test` | Implementado |
-| TEST-API-001 | Integracion | Salud y cabeceras de seguridad | `npm test` | Implementado |
-| TEST-API-002 | Integracion | Administrador inicial y politica de contrasena | `npm test` | Implementado |
-| TEST-API-003 | Integracion | Sesiones, roles y proteccion CSRF | `npm test` | Implementado |
-| TEST-API-004 | Integracion | Cifrado de configuracion de integraciones | `npm test` | Implementado |
-| TEST-API-005 | Integracion | Importacion e historicos persistentes | `npm test` | Implementado |
-| TEST-API-006 | Integracion | Reportes, actividad y PDF valido | `npm test` | Implementado |
-| TEST-API-007 | Integracion | Cierre de sesion protegido | `npm test` | Implementado |
+```bash
+npm test
+npm run build
+```
 
-Resultado del 2026-09-15: 15 pruebas ejecutadas, 15 exitosas y 0 fallidas.
+## Resultado v0.5.0
 
-## Verificacion funcional y visual
+Fecha: 2026-09-25.
 
-- Navegacion comprobada en las once rutas.
-- Auditoria y Metricas muestran contenido independiente.
-- Filtro por Instagram comprobado: la tabla paso de 12 a 3 publicaciones.
-- Vista movil comprobada a 390 x 844 pixeles sin solapamientos.
-- Consola del navegador comprobada sin advertencias ni errores.
-- Registro, login, Configuracion e Integraciones comprobados contra un servidor local y SQLite temporal.
-- PDF A4 de dos paginas renderizado y revisado visualmente sin cortes ni superposiciones.
+- 25 pruebas ejecutadas.
+- 25 exitosas.
+- 0 fallidas.
+- Compilacion estatica exitosa.
+- `git diff --check` sin errores.
+- `npm audit --omit=dev`: cero vulnerabilidades reportadas al consultar el registro.
+- GitHub Actions ejecuta `npm ci` y `npm test` antes de generar y publicar la demostracion.
+
+## Verificacion visual
+
+- Cuenta y MFA revisados a 390 x 844 y en escritorio.
+- Codigo QR, formularios y codigos de recuperacion sin desbordes.
+- Consola del navegador sin errores en la revision realizada.
+- Las vistas conservan rutas independientes.
+
+## Pendiente
+
+- Pruebas con credenciales y cuentas sandbox o reales aprobadas por cada proveedor.
+- Pruebas de revocacion, expiracion y limites de cuota por red.
+- Pruebas de correo SMTP real.
+- Pruebas de carga, restauracion, penetracion y despliegue de contenedor.
+- Matriz automatizada contra una base PostgreSQL cuando se implemente.

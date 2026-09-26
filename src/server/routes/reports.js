@@ -12,8 +12,9 @@ export function createReportsRouter({ database }) {
               r.period_start AS periodStart, r.period_end AS periodEnd,
               r.created_at AS createdAt, u.display_name AS createdBy
        FROM reports r JOIN users u ON u.id = r.created_by
+       WHERE r.organization_id = ?
        ORDER BY r.created_at DESC LIMIT 100`
-    ).all();
+    ).all(request.user.organizationId);
     response.json({ reports });
   });
 
@@ -47,8 +48,8 @@ export function createReportsRouter({ database }) {
     const report = database.prepare(
       `SELECT id, title, report_type AS reportType, period_start AS periodStart,
               period_end AS periodEnd, content_json AS contentJson, created_at AS createdAt
-       FROM reports WHERE id = ?`
-    ).get(Number(request.params.id));
+       FROM reports WHERE id = ? AND organization_id = ?`
+    ).get(Number(request.params.id), request.user.organizationId);
     if (!report) return response.status(404).json({ error: "report_not_found", message: "Reporte no encontrado." });
     return response.json({ ...report, content: JSON.parse(report.contentJson), contentJson: undefined });
   });
@@ -61,9 +62,10 @@ export function createReportsRouter({ database }) {
     }
     const result = database.prepare(
       `INSERT INTO reports
-        (title, report_type, period_start, period_end, content_json, created_by)
-       VALUES (?, ?, ?, ?, ?, ?)`
+        (organization_id, title, report_type, period_start, period_end, content_json, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).run(
+      request.user.organizationId,
       title,
       String(request.body.reportType || "executive"),
       request.body.periodStart || null,
@@ -74,6 +76,7 @@ export function createReportsRouter({ database }) {
     const reportId = Number(result.lastInsertRowid);
     logActivity(database, {
       userId: request.user.id,
+      organizationId: request.user.organizationId,
       action: "reports.created",
       entityType: "report",
       entityId: reportId,

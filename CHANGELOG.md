@@ -4,6 +4,38 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.0] - 2026-09-25
+
+### Added
+
+- Organizaciones, membresias y seleccion de contexto activo.
+- Programaciones de sincronizacion y trabajador con arrendamiento atomico.
+- Verificacion de correo, recuperacion de contrasena y MFA TOTP con codigos de recuperacion.
+- Adaptadores OAuth y normalizacion para Instagram, Facebook, TikTok, LinkedIn y X.
+- PKCE S256 para TikTok y X.
+- Imagen Docker, Compose de referencia y endpoints de vida/disponibilidad.
+- Documentacion de organizaciones, seguridad de cuentas, conectores y alta disponibilidad.
+
+### Changed
+
+- OAuth, sincronizacion y vista de Integraciones aceptan los seis proveedores mediante un registro comun.
+- Sesiones, analitica, reportes, actividad e integraciones usan el contexto de organizacion.
+- El limitador de login se almacena en SQLite y no se pierde al reiniciar el proceso.
+- El servidor valida HTTPS y longitud de la clave de cifrado en modo produccion.
+- La bateria automatizada aumenta a 25 pruebas.
+
+### Security
+
+- Tokens de verificacion y restablecimiento se guardan como hash, expiran y se consumen una vez.
+- Secretos TOTP, tokens OAuth y verificadores PKCE se cifran con AES-256-GCM.
+- El cambio de contrasena revoca sesiones anteriores.
+- El login con MFA exige desafio temporal antes de emitir una sesion completa.
+
+### Limitations
+
+- Los cinco conectores nuevos requieren credenciales, permisos y validacion con cuentas reales.
+- El backend productivo y la alta disponibilidad siguen pendientes de infraestructura externa y migracion desde SQLite.
+
 ## [v0.4.0] - 2026-09-20
 
 ### Added

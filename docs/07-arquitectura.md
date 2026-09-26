@@ -2,73 +2,62 @@
 
 ## Estado
 
-Arquitectura por capas implementada para frontend, API, autenticacion, persistencia, analitica y reportes. Desde v0.4.0, YouTube valida el primer conector oficial completo y sirve como patron para los proveedores restantes.
+Arquitectura modular por capas implementada para frontend, API, identidad, organizaciones, persistencia, analitica, reportes, conectores y sincronizacion. La version v0.5.0 mantiene SQLite para instalacion local y una demostracion estatica independiente para GitHub Pages.
 
-## Diagrama general objetivo
-
-```mermaid
-flowchart TD
-    U[Usuario] --> FE[Frontend web]
-    FE --> API[Backend/API]
-    API --> AUTH[Autenticacion y autorizacion]
-    API --> ANA[Motor analitico]
-    API --> REP[Servicio de reportes]
-    API --> INT[Capa de integraciones]
-    INT --> FB[Facebook API]
-    INT --> IG[Instagram API]
-    INT --> TT[TikTok API]
-    INT --> LI[LinkedIn API]
-    INT --> YT[YouTube API]
-    INT --> X[X/Twitter API]
-    INT --> PROC[Procesamiento y normalizacion]
-    PROC --> DB[(Base de datos)]
-    ANA --> DB
-    REP --> DB
-    API --> DB
-```
-
-## Componentes
-
-- Frontend web: dashboard, filtros, tablas, recomendaciones, reportes e integraciones.
-- Backend/API: reglas de negocio, autorizacion, orquestacion de datos y exposicion de endpoints.
-- Capa de integracion: conectores independientes por red social.
-- Motor analitico: formulas, auditoria, deteccion de anomalias, rankings e insights.
-- Base de datos: usuarios, roles, cuentas, publicaciones, metricas, historicos, reportes y actividad.
-- Servicio de reportes: generacion de informes ejecutivos.
-
-## Comunicacion entre modulos
-
-El flujo previsto es:
-
-```text
-Frontend -> Backend -> Servicio de integracion -> API social -> Procesamiento -> Base de datos -> Dashboard
-```
-
-## Servicios externos
-
-APIs oficiales de redes sociales. La disponibilidad de metricas depende de cada API y del nivel de permisos aprobado.
-
-## Arquitectura implementada v0.4.0
+## Vista general
 
 ```mermaid
 flowchart LR
-    HTML[index.html] --> ROUTER[src/app.js]
-    ROUTER --> API[Express /api/v1]
-    API --> AUTH[Sesiones y permisos]
+    U[Usuario] --> FE[Frontend web]
+    FE --> API[Express /api/v1]
+    API --> AUTH[Identidad y permisos]
+    API --> ORG[Contexto de organizacion]
+    API --> ANA[Motor analitico]
+    API --> REP[PDFKit]
     API --> DB[(SQLite)]
-    API --> PDF[PDFKit]
-    API --> OAUTH[OAuth state y tokens cifrados]
-    OAUTH --> GOOGLE[YouTube Data y Analytics API]
-    GOOGLE --> NORMALIZE[Normalizacion y deduplicacion]
-    NORMALIZE --> DB
-    ROUTER --> ANALYTICS[src/analytics.js]
-    ROUTER --> DEMO[src/data/sampleData.js]
-    TEST[test unitarios y API] --> API
-    TEST --> ANALYTICS
+    API --> INT[Conectores OAuth]
+    WORKER[Trabajador programado] --> INT
+    WORKER --> DB
+    INT --> FB[Facebook]
+    INT --> IG[Instagram]
+    INT --> TT[TikTok]
+    INT --> LI[LinkedIn]
+    INT --> YT[YouTube]
+    INT --> X[X]
+    INT --> NORM[Normalizacion]
+    NORM --> DB
 ```
 
-El enrutamiento por hash mantiene una sola carga de aplicacion, pero cada opcion del menu reemplaza completamente el contenido de `view-root`. Esto evita apilar modulos en una unica pagina y permite enlazar directamente rutas como `#/auditoria`, `#/metricas` y `#/contenido`.
+## Capas
 
-El backend se crea desde `src/server/app.js`; `server.js` solo carga el entorno, abre la base y administra el ciclo de vida. Las rutas se separan por autenticacion, usuarios, integraciones, analitica y reportes. Esta estructura permite probar la API en memoria sin iniciar un puerto real.
+- Presentacion: `index.html`, `src/app.js` y `src/styles.css`.
+- Analitica: `src/analytics.js` y datos demostrativos en `src/data/`.
+- API: composicion en `src/server/app.js` y rutas en `src/server/routes/`.
+- Identidad: sesiones, CSRF, roles, verificacion de correo, recuperacion y MFA.
+- Organizaciones: membresias y organizacion activa en cada sesion.
+- Integraciones: adaptadores independientes en `src/server/integrations/`.
+- Persistencia: SQLite, migraciones SQL y cifrado de secretos.
+- Procesamiento: `src/server/sync-worker.js` reclama tareas vencidas mediante un arrendamiento atomico.
+- Reportes: almacenamiento de informes y generacion PDF.
 
-El conector `src/server/integrations/youtube.js` encapsula OAuth y las consultas oficiales. `oauth-storage.js` cifra tokens, relaciona la conexion con el usuario y guarda cuentas, metricas, videos e historicos mediante operaciones idempotentes. La vista consume `/api/v1/analytics/dashboard`; solo conserva los datos demo cuando no existe una cuenta oficial conectada.
+## Flujo oficial de datos
+
+```text
+Usuario -> OAuth -> proveedor -> normalizacion -> historicos persistentes -> API analitica -> vistas
+```
+
+Cada adaptador devuelve el mismo contrato: cuenta, metricas, publicaciones, tokens renovados y fecha de sincronizacion. `oauth-storage.js` cifra tokens y realiza escrituras idempotentes. El frontend no recibe secretos.
+
+## Separacion de vistas
+
+El enrutamiento por hash mantiene una sola carga de aplicacion, pero cada ruta reemplaza completamente `view-root`. Auditoria, Metricas, Contenido y los demas modulos son pantallas independientes y enlazables.
+
+## Ejecucion local y publica
+
+- Local: `server.js` abre la base, construye proveedores, inicia el trabajador y sirve frontend y API.
+- Publica: `npm run build` genera `dist/` sin backend, sesiones, secretos ni datos privados.
+- Produccion: existe una imagen Docker y un Compose de referencia para una unica instancia. La alta disponibilidad real requiere reemplazar SQLite por una base compartida y una cola administrada.
+
+## Escalabilidad
+
+Las sesiones, intentos de acceso y tareas programadas ya viven en base de datos; el trabajador usa arrendamientos para evitar duplicados. Esta es una preparacion, no una garantia de alta disponibilidad. SQLite y su archivo local siguen siendo el limite principal para multiples servidores.

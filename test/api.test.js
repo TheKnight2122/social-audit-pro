@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import request from "supertest";
 import { createApp } from "../src/server/app.js";
 import { openDatabase } from "../src/server/database.js";
+import { createEmailService } from "../src/server/email.js";
 
 function binaryParser(response, callback) {
   const chunks = [];
@@ -12,6 +14,8 @@ function binaryParser(response, callback) {
 
 test("flujo de API, autenticacion, roles, persistencia e integraciones", async (context) => {
   const database = openDatabase(":memory:");
+  let tiktokVerifier;
+  let tiktokChallenge;
   const youtubeProvider = {
     configured: true,
     getAuthorizationUrl(state) {
@@ -53,13 +57,51 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
       };
     }
   };
+  const tiktokProvider = {
+    configured: true,
+    pkce: true,
+    getAuthorizationUrl(state, { codeChallenge } = {}) {
+      tiktokChallenge = codeChallenge;
+      const url = new URL("https://www.tiktok.example.test/oauth");
+      url.searchParams.set("state", state);
+      url.searchParams.set("code_challenge", codeChallenge);
+      return url.toString();
+    },
+    async exchangeCode(code, { codeVerifier } = {}) {
+      assert.equal(code, "tiktok-valid-code");
+      assert.ok(codeVerifier);
+      tiktokVerifier = codeVerifier;
+      return {
+        access_token: "tiktok-access-token",
+        refresh_token: "tiktok-refresh-token",
+        token_type: "Bearer",
+        expiry_date: Date.now() + 3600000,
+        scope: "user.info.basic video.list"
+      };
+    },
+    async fetchData(tokens) {
+      return {
+        account: {
+          externalId: "tiktok-account-1",
+          name: "TikTok de prueba",
+          handle: "@tiktok_prueba"
+        },
+        metrics: [{ key: "followers", value: 840, recordedAt: "2026-09-25T10:00:00.000Z" }],
+        posts: [],
+        tokens,
+        syncedAt: "2026-09-25T10:00:00.000Z"
+      };
+    }
+  };
   const app = createApp({
     database,
+    emailService: createEmailService({ database, transport: null, environment: "test" }),
     encryptionSecret: "test-encryption-secret-value",
     secureCookies: false,
     loginLimit: { maxAttempts: 20 },
     appBaseUrl: "http://127.0.0.1:4173",
-    youtubeProvider
+    youtubeProvider,
+    providers: { tiktok: tiktokProvider }
   });
   const admin = request.agent(app);
   const client = request.agent(app);
@@ -74,6 +116,13 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
     assert.equal(response.headers["x-content-type-options"], "nosniff");
     assert.match(response.headers["content-security-policy"], /default-src 'self'/);
     assert.equal(response.headers["x-powered-by"], undefined);
+    await request(app).get("/api/v1/health/live").expect(200);
+    await request(app).get("/api/v1/health/ready").expect(200);
+    for (const path of ["/server.js", "/src/server/app.js", "/data/social-audit-pro.sqlite", "/package.json", "/.env"]) {
+      await request(app).get(path).expect(404);
+    }
+    await request(app).get("/").expect("Content-Type", /html/).expect(200);
+    await request(app).get("/src/app.js").expect(200);
   });
 
   await context.test("permite crear un unico administrador inicial", async () => {
@@ -113,7 +162,7 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
       role: "client"
     }).expect(403);
 
-    await admin.post("/api/v1/auth/register")
+    const createdClient = await admin.post("/api/v1/auth/register")
       .set("x-csrf-token", adminCsrf)
       .send({
         displayName: "Cliente Demo",
@@ -122,6 +171,12 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
         role: "client"
       })
       .expect(201);
+
+    const verificationToken = new URL(createdClient.body.previewVerificationUrl)
+      .searchParams.get("verifyEmail");
+    await request(app).post("/api/v1/auth/email-verification/confirm")
+      .send({ token: verificationToken })
+      .expect(200);
 
     const users = await admin.get("/api/v1/users").expect(200);
     assert.equal(users.body.users.length, 2);
@@ -157,7 +212,8 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
       .expect(201);
 
     const stored = database.prepare(
-      "SELECT client_secret_encrypted AS secret FROM integrations WHERE platform_slug = 'instagram'"
+      `SELECT client_secret_encrypted AS secret
+       FROM organization_integrations WHERE platform_slug = 'instagram'`
     ).get();
     assert.notEqual(stored.secret, "private-client-secret");
     assert.equal(stored.secret.includes("private-client-secret"), false);
@@ -198,7 +254,7 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
     assert.equal(posts.body.posts[0].metrics.reach, 5000);
   });
 
-  await context.test("conecta YouTube por OAuth, cifra tokens y aisla los datos por usuario", async () => {
+  await context.test("conecta YouTube por OAuth, cifra tokens y comparte dentro de la organizacion", async () => {
     const integrations = await admin.get("/api/v1/integrations").expect(200);
     const youtube = integrations.body.integrations.find((item) => item.platform === "youtube");
     assert.equal(youtube.oauthAvailable, true);
@@ -238,17 +294,17 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
     assert.equal(dashboard.body.posts[0].views, 750);
     assert.equal(dashboard.body.posts[0].reach, null);
 
-    const isolatedDashboard = await client.get("/api/v1/analytics/dashboard").expect(200);
-    assert.deepEqual(isolatedDashboard.body.accounts, []);
-    assert.deepEqual(isolatedDashboard.body.posts, []);
+    const sharedDashboard = await client.get("/api/v1/analytics/dashboard").expect(200);
+    assert.equal(sharedDashboard.body.accounts[0].handle, "@canal_prueba");
+    assert.equal(sharedDashboard.body.posts[0].views, 750);
 
     const secondStart = await client.get("/api/v1/integrations/youtube/oauth/start").expect(200);
     const secondState = new URL(secondStart.body.authorizationUrl).searchParams.get("state");
-    const ownershipConflict = await request(app)
+    const sharedAuthorization = await request(app)
       .get("/api/v1/integrations/youtube/oauth/callback")
       .query({ code: "valid-code", state: secondState })
       .expect(302);
-    assert.match(ownershipConflict.headers.location, /status=error/);
+    assert.match(sharedAuthorization.headers.location, /status=success/);
     assert.equal(database.prepare("SELECT COUNT(*) AS count FROM oauth_connections").get().count, 1);
 
     const synced = await admin.post("/api/v1/integrations/youtube/sync")
@@ -261,6 +317,64 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
     assert.equal(connected.status, "connected");
     assert.equal(connected.connectedAccount, "Canal de prueba");
     assert.equal(connected.accountCount, 1);
+  });
+
+  await context.test("completa OAuth generico con PKCE y cifra el verificador", async () => {
+    const start = await admin.get("/api/v1/integrations/tiktok/oauth/start").expect(200);
+    const authorizationUrl = new URL(start.body.authorizationUrl);
+    const oauthState = authorizationUrl.searchParams.get("state");
+    assert.ok(oauthState);
+    assert.ok(tiktokChallenge);
+
+    const storedState = database.prepare(
+      `SELECT code_verifier_encrypted AS verifier
+       FROM oauth_states WHERE platform_slug = 'tiktok'`
+    ).get();
+    assert.ok(storedState.verifier);
+    assert.equal(storedState.verifier.includes(tiktokChallenge), false);
+
+    const callback = await request(app)
+      .get("/api/v1/integrations/tiktok/oauth/callback")
+      .query({ code: "tiktok-valid-code", state: oauthState })
+      .expect(302);
+    assert.match(callback.headers.location, /oauth=tiktok/);
+    assert.match(callback.headers.location, /status=success/);
+    assert.ok(tiktokVerifier);
+    assert.equal(
+      createHash("sha256").update(tiktokVerifier).digest("base64url"),
+      tiktokChallenge
+    );
+
+    const storedConnection = database.prepare(
+      `SELECT access_token_encrypted AS accessToken
+       FROM oauth_connections WHERE platform_slug = 'tiktok'`
+    ).get();
+    assert.ok(storedConnection.accessToken);
+    assert.equal(storedConnection.accessToken.includes("tiktok-access-token"), false);
+    const dashboard = await admin.get("/api/v1/analytics/dashboard").expect(200);
+    assert.equal(dashboard.body.accounts.find((item) => item.platform === "TikTok").followers, 840);
+  });
+
+  await context.test("aisla cuentas, reportes y analitica entre organizaciones", async () => {
+    const created = await admin.post("/api/v1/organizations")
+      .set("x-csrf-token", adminCsrf)
+      .send({ name: "Segunda organizacion" })
+      .expect(201);
+    await admin.post("/api/v1/organizations/" + created.body.organization.id + "/select")
+      .set("x-csrf-token", adminCsrf)
+      .expect(200);
+
+    const isolatedDashboard = await admin.get("/api/v1/analytics/dashboard").expect(200);
+    assert.deepEqual(isolatedDashboard.body.accounts, []);
+    assert.deepEqual(isolatedDashboard.body.posts, []);
+
+    const firstOrganizationDashboard = await client.get("/api/v1/analytics/dashboard").expect(200);
+    assert.ok(firstOrganizationDashboard.body.accounts.some(
+      (account) => account.handle === "@canal_prueba"
+    ));
+    assert.ok(firstOrganizationDashboard.body.accounts.some(
+      (account) => account.handle === "@tiktok_prueba"
+    ));
   });
 
   await context.test("guarda reportes y registra actividad", async () => {
@@ -277,6 +391,9 @@ test("flujo de API, autenticacion, roles, persistencia e integraciones", async (
 
     const reports = await admin.get("/api/v1/reports").expect(200);
     assert.equal(reports.body.reports.length, 1);
+    await client.get("/api/v1/reports/" + created.body.id).expect(404);
+    const isolatedReports = await client.get("/api/v1/reports").expect(200);
+    assert.equal(isolatedReports.body.reports.length, 0);
     const activity = await admin.get("/api/v1/activity").expect(200);
     assert.ok(activity.body.activity.some((item) => item.action === "reports.created"));
 

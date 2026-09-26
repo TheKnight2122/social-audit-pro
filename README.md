@@ -35,8 +35,11 @@ Incluye auditoria, analitica, monitoreo, insights, recomendaciones, reportes, ge
 - Insights que separan dato observado, interpretacion, hipotesis, impacto y recomendacion.
 - Reportes persistentes y exportacion profesional a PDF.
 - Registro, inicio y cierre de sesion con permisos por rol.
+- Verificacion de correo, recuperacion de contrasena y segundo factor TOTP con codigos de recuperacion.
+- Organizaciones con miembros, seleccion de contexto y aislamiento de consultas.
 - Gestion real de usuarios e integraciones desde el backend.
-- Conexion OAuth oficial de YouTube, sincronizacion manual y uso automatico de datos reales en los modulos existentes.
+- Conectores OAuth para YouTube, Instagram, Facebook, TikTok, LinkedIn y X, sujetos a credenciales y aprobaciones de cada proveedor.
+- Sincronizacion manual y programada con arrendamientos para impedir que dos trabajadores procesen la misma tarea.
 - Importacion normalizada de cuentas, publicaciones e historicos.
 
 ## Tecnologias utilizadas
@@ -46,11 +49,12 @@ Incluye auditoria, analitica, monitoreo, insights, recomendaciones, reportes, ge
 - SQLite con `better-sqlite3` para persistencia local.
 - PDFKit para reportes PDF.
 - Google APIs Node.js Client para OAuth, YouTube Data API y YouTube Analytics API.
+- Nodemailer para correo, otplib para TOTP y QRCode para alta de segundo factor.
 - `node:test` y Supertest para pruebas unitarias y de API.
 
 ## Arquitectura general
 
-La aplicacion separa frontend, API, autenticacion, persistencia, analitica y reportes. YouTube implementa el primer flujo completo OAuth -> API oficial -> normalizacion -> SQLite -> dashboard. La misma arquitectura queda preparada para incorporar los demas proveedores. Ver `docs/07-arquitectura.md`.
+La aplicacion separa frontend, API, autenticacion, organizaciones, persistencia, analitica, reportes, conectores y trabajador de sincronizacion. Los seis proveedores comparten el flujo OAuth -> API oficial -> normalizacion -> SQLite -> dashboard. Ver `docs/07-arquitectura.md`.
 
 ## Estructura de carpetas
 
@@ -88,19 +92,19 @@ La aplicacion separa frontend, API, autenticacion, persistencia, analitica y rep
 npm install
 ```
 
-Copiar `.env.example` a `.env`, reemplazar `TOKEN_ENCRYPTION_KEY` por un secreto aleatorio largo y completar las credenciales de YouTube antes de conectar una cuenta real.
+Copiar `.env.example` a `.env`, reemplazar `TOKEN_ENCRYPTION_KEY` por un secreto aleatorio largo y completar solamente las credenciales de los proveedores que se hayan registrado y aprobado.
 
 ## Configuracion
 
 No se deben versionar secretos ni credenciales. Las variables necesarias se documentan en `.env.example`.
 
-Para habilitar YouTube se deben activar YouTube Data API v3 y YouTube Analytics API en Google Cloud, crear un cliente OAuth de tipo aplicacion web y registrar exactamente esta URL local:
+Cada proveedor necesita una aplicacion propia, permisos autorizados y una URL de retorno exacta. Por ejemplo, para YouTube:
 
 ```text
 http://127.0.0.1:4173/api/v1/integrations/youtube/oauth/callback
 ```
 
-Las variables son `YOUTUBE_OAUTH_CLIENT_ID`, `YOUTUBE_OAUTH_CLIENT_SECRET` y `YOUTUBE_OAUTH_REDIRECT_URI`. La guia completa esta en `docs/21-integracion-youtube.md`.
+Las variables de todos los proveedores estan descritas en `.env.example`. La guia general se encuentra en `docs/27-conectores-oficiales.md` y la guia especifica de YouTube en `docs/21-integracion-youtube.md`.
 
 ## Como ejecutar el proyecto
 
@@ -122,7 +126,7 @@ En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues
 
 ## Estado actual
 
-Version `v0.4.0` en desarrollo: YouTube ya dispone del primer conector OAuth oficial de extremo a extremo. Al conectar una cuenta, sus datos oficiales sustituyen los datos demo para ese usuario; las metricas no disponibles no se estiman.
+Version `v0.5.0` en desarrollo: la plataforma incluye seguridad de cuenta, organizaciones, sincronizacion automatica y adaptadores OAuth para las seis redes. YouTube conserva la validacion mas madura. Los demas conectores estan implementados y probados con respuestas simuladas, pero necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman.
 
 ## Funcionalidades terminadas
 
@@ -136,19 +140,24 @@ Version `v0.4.0` en desarrollo: YouTube ya dispone del primer conector OAuth ofi
 - Registro inicial, login, sesiones, CSRF y permisos para Administrador, Analista y Cliente.
 - Usuarios, integraciones, historicos, publicaciones, reportes y actividad persistentes.
 - Credenciales de integracion cifradas en reposo.
-- Tokens OAuth de YouTube cifrados en reposo, estado de autorizacion de un solo uso y renovacion oficial mediante refresh token.
-- Sincronizacion de canal, videos, metricas disponibles e historicos de YouTube sin duplicados.
+- Tokens OAuth cifrados en reposo, estado de autorizacion de un solo uso y PKCE en TikTok y X.
+- Adaptadores oficiales para YouTube, Instagram, Facebook, TikTok, LinkedIn y X.
+- Sincronizacion manual y automatica con intervalos configurables, bloqueo distribuido por arrendamiento y reintento controlado.
+- Verificacion de correo, restablecimiento de contrasena y MFA TOTP con codigos de recuperacion.
+- Organizaciones, membresias, seleccion de contexto y aislamiento de cuentas, analitica, reportes, actividad e integraciones.
 - Dashboard, auditoria, metricas, contenido y reportes alimentados por datos oficiales cuando existe una cuenta conectada.
 - Reporte ejecutivo descargable en PDF.
-- Diecisiete pruebas automatizadas exitosas.
+- Imagen Docker, Compose de referencia, validaciones de produccion, apagado ordenado y endpoints de vida/disponibilidad.
+- Veinticinco pruebas automatizadas exitosas.
 
 ## Funcionalidades pendientes
 
-- Conectores OAuth oficiales de Instagram, Facebook, TikTok, LinkedIn y X.
-- Sincronizacion programada y reintentos para conexiones oficiales.
+- Registrar aplicaciones, credenciales y permisos aprobados en cada red social y validar cada flujo con cuentas reales.
+- Desplegar el backend y configurar correo SMTP, dominio HTTPS y secretos en un proveedor de produccion.
+- Migrar SQLite a PostgreSQL u otra base administrada antes de ejecutar multiples instancias.
+- Incorporar una cola compartida y observabilidad para alta disponibilidad completa.
 - Ampliar el uso de historicos persistidos a comparativas multicuenta y datos de audiencia cuando las APIs los permitan.
-- Aislamiento de datos por organizacion/cliente.
-- Endurecimiento para despliegue publico, recuperacion de contrasena y segundo factor.
+- Ejecutar auditoria externa, pruebas de carga y revision de seguridad antes de almacenar informacion de clientes.
 
 ## Documentacion
 
@@ -167,6 +176,10 @@ Documentos clave:
 - `docs/22-documentacion-word.md`
 - `docs/23-informes-semanales.md`
 - `docs/24-guia-visual-codigo.md`
+- `docs/25-organizaciones-y-sincronizacion.md`
+- `docs/26-seguridad-de-cuentas.md`
+- `docs/27-conectores-oficiales.md`
+- `docs/28-produccion-y-alta-disponibilidad.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `docs/semanales/`
@@ -179,3 +192,4 @@ Documentos clave:
 - `v0.2.0` - Separacion de modulos, ampliacion analitica y reporte HTML.
 - `v0.3.0` - Backend, persistencia, autenticacion, roles, integraciones configurables y PDF.
 - `v0.4.0` - Primer conector OAuth oficial completo para YouTube y dashboard con datos reales por usuario.
+- `v0.5.0` - Organizaciones, seguridad de cuenta, sincronizacion automatica, conectores multired y base de despliegue.

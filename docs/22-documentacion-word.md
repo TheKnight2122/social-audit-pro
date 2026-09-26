@@ -23,3 +23,5 @@ Las capturas de codigo se conservan en `docs/assets/codigo/` y deben regenerarse
 El manual debe actualizarse cuando cambien las funciones, la arquitectura, los controles de seguridad, las integraciones, el estado general o los pasos de uso. Antes de versionarlo se debe renderizar completo y revisar cada pagina para evitar recortes, desbordamientos, paginas vacias o imagenes desactualizadas.
 
 No se deben incluir nombres personales, contrasenas, tokens, credenciales, sesiones ni datos privados en el documento o en sus capturas.
+
+La revision v0.5.0 agrega al manual principal un suplemento sobre organizaciones, seguridad de cuenta, sincronizacion automatica, conectores multired y preparacion productiva. Tambien incorpora el informe Word de la semana del 21 al 27 de septiembre de 2026.

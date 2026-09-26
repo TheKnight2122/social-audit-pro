@@ -1,89 +1,40 @@
 # Roadmap
 
-## Fase 0 - Preparacion
+## Fases completadas
 
-Estado: completada.
+- Preparacion, requisitos, diseno y arquitectura inicial.
+- Frontend modular con once vistas.
+- Backend, API, persistencia local y PDF.
+- Autenticacion, roles, CSRF y cifrado.
+- YouTube oficial de extremo a extremo.
+- Organizaciones, seguridad de cuenta y sincronizacion automatica.
+- Adaptadores multired y pruebas simuladas de normalizacion.
+- Publicacion estatica automatica y documentacion visual.
 
-- Crear estructura documental.
-- Preparar README y CHANGELOG.
-- Preparar registro de avances.
-- Preparar registro de decisiones.
-- Preparar trazabilidad.
-- Crear o conectar repositorio GitHub.
+## Fase actual - Activacion controlada
 
-## Fase 1 - Analisis
+1. Registrar aplicaciones de Meta, TikTok, LinkedIn y X.
+2. Solicitar los productos, permisos y revisiones necesarios.
+3. Cargar credenciales mediante variables del servidor.
+4. Validar autorizacion, sincronizacion, renovacion y revocacion con cuentas de prueba.
+5. Confirmar que cada metrica se obtiene oficialmente y documentar ausencias.
 
-Estado: completada inicial.
+## Siguiente fase - Produccion
 
-- Analizar segundo prompt del equipo.
-- Identificar problema, contexto y usuarios.
-- Convertir requisitos en documentacion formal.
+1. Elegir host, PostgreSQL administrado, SMTP y gestor de secretos.
+2. Portar persistencia y migraciones desde SQLite.
+3. Automatizar despliegues, copias y restauraciones.
+4. Separar API y trabajador con una cola compartida.
+5. Incorporar logs estructurados, metricas, trazas y alertas.
+6. Ejecutar pruebas de carga y seguridad.
 
-## Fase 2 - Diseno
+## Alta disponibilidad
 
-Estado: completada inicial.
+Estado: preparada parcialmente, no completada.
 
-- Definir arquitectura.
-- Definir tecnologias.
-- Definir modelo de datos si aplica.
-- Definir modulos.
+- Completado: sesiones persistentes, limitador persistente, tareas con arrendamiento, endpoints de vida/disponibilidad y apagado ordenado.
+- Pendiente: base compartida, cola compartida, balanceador, multiples replicas, almacenamiento externo, observabilidad y recuperacion ante desastres.
 
-## Fase 3 - Desarrollo base
+## Criterio para version estable
 
-Estado: completada inicial.
-
-- Inicializar estructura tecnica del proyecto. Estado: completado.
-- Configurar entorno. Estado: completado.
-- Configurar pruebas. Estado: completado inicial.
-- Implementar backend/API. Estado: completado inicial.
-- Implementar persistencia. Estado: completado inicial con SQLite.
-
-## Fase 4 - Desarrollo de modulos
-
-Estado: frontend completado; servicios transversales reales y migracion de datos por modulo en progreso.
-
-- Dashboard. Estado: demo funcional.
-- Auditoria. Estado: demo funcional.
-- Metricas. Estado: demo funcional.
-- Contenido. Estado: demo funcional.
-- Audiencia. Estado: demo funcional sujeto a disponibilidad.
-- Comparativas. Estado: demo funcional.
-- Insights. Estado: demo funcional.
-- Recomendaciones. Estado: demo funcional.
-- Reportes. Estado: persistencia y PDF funcionales.
-- Integraciones. Estado: YouTube OAuth completo; configuracion cifrada e importacion manual conservadas; proveedores restantes pendientes.
-- Configuracion. Estado: usuarios y roles funcionales contra backend.
-
-## Fase 5 - Integracion
-
-Estado: en progreso.
-
-- Integrar modulos y servicios. Estado: primer conector oficial de YouTube integrado de extremo a extremo; Meta, TikTok, LinkedIn y X pendientes.
-
-## Fase 6 - Pruebas
-
-Estado: en progreso.
-
-- Ejecutar pruebas unitarias, integracion, funcionales y seguridad basica. Estado: 17 pruebas automatizadas, incluido OAuth simulado, cifrado, sincronizacion y aislamiento por usuario.
-
-## Fase 7 - Correcciones
-
-Estado: pendiente.
-
-- Corregir errores encontrados.
-- Registrar incidencias relevantes.
-
-## Fase 8 - Documentacion final
-
-Estado: en progreso.
-
-- Manual visual Word creado con estado, funciones, arquitectura, seguridad, historial y guia rapida.
-- Capturas actuales de escritorio y movil incorporadas.
-- Informes semanales Word incorporados para resumir solicitudes, evidencias, resultados y pendientes.
-- Pendiente mantener el manual, la arquitectura, las pruebas y el estado al dia hasta preparar la entrega final.
-
-## Fase 9 - Version estable
-
-Estado: pendiente.
-
-- Preparar version estable cuando el sistema cumpla requisitos y pruebas.
+La primera version estable requiere al menos un entorno productivo reproducible, conectores activados y validados, aislamiento revisado, restauracion probada y pruebas de seguridad sin hallazgos criticos.

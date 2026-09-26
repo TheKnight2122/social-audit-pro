@@ -10,24 +10,24 @@ export function createAnalyticsRouter({ database }) {
       `SELECT a.id, a.name, a.handle, a.metadata_json AS metadataJson,
               p.name AS platform, c.last_sync_at AS lastSyncAt,
               (SELECT metric_value FROM metric_snapshots m
-               WHERE m.account_id = a.id AND m.metric_key = 'subscribers'
+               WHERE m.account_id = a.id AND m.metric_key = CASE WHEN c.platform_slug = 'youtube' THEN 'subscribers' ELSE 'followers' END
                ORDER BY m.recorded_at DESC LIMIT 1) AS followers,
               (SELECT metric_value FROM metric_snapshots m
-               WHERE m.account_id = a.id AND m.metric_key = 'subscribers'
+               WHERE m.account_id = a.id AND m.metric_key = CASE WHEN c.platform_slug = 'youtube' THEN 'subscribers' ELSE 'followers' END
                ORDER BY m.recorded_at DESC LIMIT 1 OFFSET 1) AS previousFollowers
        FROM social_accounts a
        JOIN oauth_connections c ON c.id = a.oauth_connection_id
        JOIN social_platforms p ON p.slug = c.platform_slug
-       WHERE c.user_id = ? AND c.status = 'connected'
+       WHERE c.organization_id = ? AND c.status = 'connected'
        ORDER BY p.name, a.name`
-    ).all(request.user.id);
+    ).all(request.user.organizationId);
 
     const accounts = rows.map((row) => {
       const metadata = JSON.parse(row.metadataJson || "{}");
-      const profileFields = [row.name, row.handle, metadata.description, metadata.thumbnail];
+      const profileFields = [row.name, row.handle, metadata.description || metadata.biography || metadata.bio, metadata.thumbnail || metadata.avatar];
       return {
         id: "live-" + row.id,
-        platform: row.platform,
+        platform: row.platform === "X / Twitter" ? "X" : row.platform,
         handle: row.handle || row.name,
         followers: row.followers == null ? null : Number(row.followers),
         previousFollowers: row.previousFollowers == null ? null : Number(row.previousFollowers),
@@ -49,9 +49,9 @@ export function createAnalyticsRouter({ database }) {
            JOIN social_accounts a ON a.id = po.account_id
            JOIN oauth_connections c ON c.id = a.oauth_connection_id
            JOIN social_platforms p ON p.slug = c.platform_slug
-           WHERE c.user_id = ? AND c.status = 'connected'
+           WHERE c.organization_id = ? AND c.status = 'connected'
            ORDER BY po.published_at DESC LIMIT 500`
-        ).all(request.user.id).map((row) => {
+        ).all(request.user.organizationId).map((row) => {
           const metrics = JSON.parse(row.metricsJson || "{}");
           const published = new Date(row.publishedAt);
           return {
@@ -59,7 +59,7 @@ export function createAnalyticsRouter({ database }) {
             accountId: accountIds.get(row.accountId),
             date: row.publishedAt.slice(0, 10),
             hour: Number.isNaN(published.getTime()) ? 0 : published.getHours(),
-            platform: row.platform,
+            platform: row.platform === "X / Twitter" ? "X" : row.platform,
             format: row.contentType === "video" ? "Video" : (row.contentType || "Sin clasificar"),
             topic: row.topic || "Sin clasificar",
             campaign: row.campaign || "Organico",
@@ -84,11 +84,11 @@ export function createAnalyticsRouter({ database }) {
        FROM metric_snapshots m
        JOIN social_accounts a ON a.id = m.account_id
        JOIN oauth_connections c ON c.id = a.oauth_connection_id
-       WHERE c.user_id = ? AND c.status = 'connected'
+       WHERE c.organization_id = ? AND c.status = 'connected'
          AND m.metric_key = 'analytics_views'
        GROUP BY substr(m.recorded_at, 1, 10)
        ORDER BY day DESC LIMIT 28`
-    ).all(request.user.id).reverse();
+    ).all(request.user.organizationId).reverse();
     const trend = [];
     for (let index = 0; index < dailyViews.length; index += 7) {
       trend.push({
@@ -109,10 +109,9 @@ export function createAnalyticsRouter({ database }) {
        FROM social_accounts a
        JOIN integrations i ON i.id = a.integration_id
        JOIN social_platforms p ON p.slug = i.platform_slug
-       LEFT JOIN oauth_connections c ON c.id = a.oauth_connection_id
-       WHERE a.oauth_connection_id IS NULL OR c.user_id = ?
+       WHERE a.organization_id = ?
        ORDER BY p.name, a.name`
-    ).all(request.user.id);
+    ).all(request.user.organizationId);
     response.json({ accounts });
   });
 
@@ -124,9 +123,8 @@ export function createAnalyticsRouter({ database }) {
     }
     const allowed = database.prepare(
       `SELECT a.id FROM social_accounts a
-       LEFT JOIN oauth_connections c ON c.id = a.oauth_connection_id
-       WHERE a.id = ? AND (a.oauth_connection_id IS NULL OR c.user_id = ?)`
-    ).get(accountId, request.user.id);
+       WHERE a.id = ? AND a.organization_id = ?`
+    ).get(accountId, request.user.organizationId);
     if (!allowed) return response.status(404).json({ error: "account_not_found", message: "Cuenta no encontrada." });
     const history = database.prepare(
       `SELECT metric_key AS metric, metric_value AS value,
@@ -143,9 +141,8 @@ export function createAnalyticsRouter({ database }) {
     if (Number.isInteger(accountId)) {
       const allowed = database.prepare(
         `SELECT a.id FROM social_accounts a
-         LEFT JOIN oauth_connections c ON c.id = a.oauth_connection_id
-         WHERE a.id = ? AND (a.oauth_connection_id IS NULL OR c.user_id = ?)`
-      ).get(accountId, request.user.id);
+         WHERE a.id = ? AND a.organization_id = ?`
+      ).get(accountId, request.user.organizationId);
       if (!allowed) return response.status(404).json({ error: "account_not_found", message: "Cuenta no encontrada." });
     }
     const rows = Number.isInteger(accountId)
@@ -160,10 +157,9 @@ export function createAnalyticsRouter({ database }) {
                   po.description, po.metrics_json AS metricsJson
            FROM posts po
            JOIN social_accounts a ON a.id = po.account_id
-           LEFT JOIN oauth_connections c ON c.id = a.oauth_connection_id
-           WHERE a.oauth_connection_id IS NULL OR c.user_id = ?
+           WHERE a.organization_id = ?
            ORDER BY po.published_at DESC LIMIT 500`
-        ).all(request.user.id);
+        ).all(request.user.organizationId);
     response.json({
       posts: rows.map((row) => ({ ...row, metrics: JSON.parse(row.metricsJson), metricsJson: undefined }))
     });

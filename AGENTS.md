@@ -13,9 +13,12 @@ La version actual incluye:
 - Once vistas independientes para dashboard, auditoria, metricas, contenido, audiencia, comparativas, insights, recomendaciones, reportes, integraciones y configuracion.
 - API REST con Node.js y Express bajo `/api/v1`.
 - Persistencia local con SQLite y `better-sqlite3`.
-- Registro inicial, inicio y cierre de sesion, proteccion CSRF y permisos por rol.
+- Registro inicial, inicio y cierre de sesion, verificacion de correo, recuperacion, MFA, proteccion CSRF y permisos por rol.
+- Organizaciones, membresias y aislamiento de datos por organizacion activa.
 - Gestion persistente de usuarios, integraciones, historicos, publicaciones, reportes y actividad.
 - Configuracion sensible de integraciones cifrada en reposo.
+- Conectores implementados para YouTube, Instagram, Facebook, TikTok, LinkedIn y X.
+- Sincronizacion manual y programada mediante trabajador con arrendamientos.
 - Generacion y descarga de reportes PDF mediante PDFKit.
 - Demostracion estatica publicada automaticamente en GitHub Pages.
 - Pruebas automatizadas para analitica, API, autenticacion, roles y persistencia.
@@ -23,7 +26,7 @@ La version actual incluye:
 - Guia visual del codigo en Word con 21 capturas explicadas de las capas principales.
 - Informes semanales en Word con solicitudes, resultados, evidencias y pendientes.
 
-YouTube cuenta con el primer conector OAuth oficial completo; requiere credenciales propias de Google para activarse. Los conectores restantes siguen pendientes de credenciales, permisos y aprobaciones de cada plataforma.
+YouTube cuenta con el conector OAuth mas maduro; requiere credenciales propias de Google para activarse. Los cinco conectores restantes estan implementados y probados con respuestas simuladas, pero siguen pendientes de credenciales, permisos, aprobaciones y validacion con cuentas reales.
 
 ## Version local y publica
 
@@ -43,6 +46,8 @@ La demostracion publica es estatica. No debe almacenar usuarios, credenciales, s
 - `src/analytics.js`: calculos, clasificaciones y reglas de analisis.
 - `src/data/`: datos demostrativos normalizados.
 - `src/server/`: API, autenticacion, permisos, seguridad, persistencia y PDF.
+- `src/server/integrations/`: adaptadores OAuth y normalizacion por plataforma.
+- `src/server/sync-worker.js`: ejecucion programada con arrendamientos.
 - `migrations/`: esquema y migraciones de SQLite.
 - `test/`: pruebas unitarias y de integracion.
 - `docs/`: requisitos, arquitectura, seguridad, manuales, decisiones y roadmap.
@@ -71,11 +76,11 @@ npm run build
 
 ## Trabajo pendiente prioritario
 
-1. Reutilizar el patron OAuth de YouTube para Meta, TikTok, LinkedIn y X.
-2. Programar sincronizaciones automaticas y gestionar revocaciones.
-3. Sustituir progresivamente los datos demostrativos por consultas a historicos persistidos.
-4. Incorporar aislamiento de datos por organizacion o cliente.
-5. Endurecer el despliegue para produccion, incluyendo recuperacion de contrasena y segundo factor.
+1. Registrar credenciales y obtener aprobaciones para Meta, TikTok, LinkedIn y X.
+2. Validar cada conector con cuentas reales y completar revocaciones especificas.
+3. Desplegar backend, SMTP y secretos en un proveedor productivo.
+4. Migrar SQLite a PostgreSQL o equivalente antes de multiples servidores.
+5. Incorporar cola compartida, observabilidad, copias y pruebas de carga/seguridad.
 
 ## Criterios para completar un avance
 

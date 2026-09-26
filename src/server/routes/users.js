@@ -21,20 +21,28 @@ export function createUsersRouter({ database }) {
   const router = Router();
   router.use(requirePermission("users:manage"));
 
-  router.get("/", (_request, response) => {
+  router.get("/", (request, response) => {
     const users = database.prepare(
-      `SELECT u.id, u.display_name AS displayName, u.email, u.role_slug AS role,
-              r.name AS roleName, u.status, u.created_at AS createdAt,
+      `SELECT u.id, u.display_name AS displayName, u.email, m.role_slug AS role,
+              r.name AS roleName, m.status, u.created_at AS createdAt,
               u.last_login_at AS lastLoginAt
-       FROM users u JOIN roles r ON r.slug = u.role_slug
+       FROM organization_members m
+       JOIN users u ON u.id = m.user_id
+       JOIN roles r ON r.slug = m.role_slug
+       WHERE m.organization_id = ?
        ORDER BY u.created_at DESC`
-    ).all();
+    ).all(request.user.organizationId);
     response.json({ users: users.map(serializeUser) });
   });
 
   router.patch("/:id", requireCsrf, (request, response) => {
     const userId = Number(request.params.id);
-    const existing = database.prepare("SELECT id, role_slug AS role, status FROM users WHERE id = ?").get(userId);
+    const existing = database.prepare(
+      `SELECT u.id, m.role_slug AS role, m.status
+       FROM organization_members m
+       JOIN users u ON u.id = m.user_id
+       WHERE m.organization_id = ? AND m.user_id = ?`
+    ).get(request.user.organizationId, userId);
     if (!existing) return response.status(404).json({ error: "user_not_found", message: "Usuario no encontrado." });
 
     const role = request.body.role == null ? existing.role : String(request.body.role);
@@ -46,12 +54,25 @@ export function createUsersRouter({ database }) {
       return response.status(400).json({ error: "self_lockout", message: "No puedes quitarte el acceso de administrador." });
     }
 
-    database.prepare(
-      "UPDATE users SET role_slug = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-    ).run(role, status, userId);
-    if (status === "disabled") database.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
+    database.transaction(() => {
+      database.prepare(
+        `UPDATE organization_members
+         SET role_slug = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE organization_id = ? AND user_id = ?`
+      ).run(role, status, request.user.organizationId, userId);
+      database.prepare(
+        `UPDATE users SET role_slug = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND default_organization_id = ?`
+      ).run(role, userId, request.user.organizationId);
+      if (status === "disabled") {
+        database.prepare(
+          "DELETE FROM sessions WHERE user_id = ? AND organization_id = ?"
+        ).run(userId, request.user.organizationId);
+      }
+    })();
     logActivity(database, {
       userId: request.user.id,
+      organizationId: request.user.organizationId,
       action: "users.updated",
       entityType: "user",
       entityId: userId,
@@ -59,11 +80,14 @@ export function createUsersRouter({ database }) {
       ipAddress: request.ip
     });
     const updated = database.prepare(
-      `SELECT u.id, u.display_name AS displayName, u.email, u.role_slug AS role,
-              r.name AS roleName, u.status, u.created_at AS createdAt,
+      `SELECT u.id, u.display_name AS displayName, u.email, m.role_slug AS role,
+              r.name AS roleName, m.status, u.created_at AS createdAt,
               u.last_login_at AS lastLoginAt
-       FROM users u JOIN roles r ON r.slug = u.role_slug WHERE u.id = ?`
-    ).get(userId);
+       FROM organization_members m
+       JOIN users u ON u.id = m.user_id
+       JOIN roles r ON r.slug = m.role_slug
+       WHERE m.organization_id = ? AND u.id = ?`
+    ).get(request.user.organizationId, userId);
     return response.json({ user: serializeUser(updated) });
   });
 

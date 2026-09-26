@@ -27,6 +27,12 @@ jobs:
         with:
           node-version: 22
 
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar pruebas automatizadas
+        run: npm test
+
       - name: Generar demostracion estatica
         run: node scripts/build-static.js
 

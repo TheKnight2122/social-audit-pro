@@ -37,13 +37,23 @@ const state = {
   authReady: false,
   apiAvailable: true,
   users: null,
+  organizations: null,
   persistedIntegrations: null,
   savedReports: null,
   liveData: null,
-  oauthNotice: null
+  oauthNotice: null,
+  mfaChallengeToken: null,
+  mfaSetup: null,
+  recoveryCodes: null,
+  accountNotice: null,
+  accountPreviewUrl: null,
+  emailVerificationToken: null,
+  passwordResetToken: null
 };
 
 const oauthParameters = new URLSearchParams(window.location.search);
+state.emailVerificationToken = oauthParameters.get("verifyEmail");
+state.passwordResetToken = oauthParameters.get("resetPassword");
 if (oauthParameters.get("oauth")) {
   state.oauthNotice = {
     platform: oauthParameters.get("oauth"),
@@ -51,6 +61,8 @@ if (oauthParameters.get("oauth")) {
     reason: oauthParameters.get("reason")
   };
   history.replaceState({}, "", window.location.pathname + window.location.hash);
+} else if (state.emailVerificationToken || state.passwordResetToken) {
+  history.replaceState({}, "", window.location.pathname + (window.location.hash || "#/cuenta"));
 }
 
 const routes = {
@@ -198,6 +210,27 @@ async function bootstrapAuth() {
     state.needsInitialAdmin = false;
   } finally {
     state.authReady = true;
+  }
+}
+
+async function processAccountLink() {
+  if (!state.apiAvailable || !state.emailVerificationToken) return;
+  try {
+    await apiRequest("/auth/email-verification/confirm", {
+      method: "POST",
+      body: { token: state.emailVerificationToken }
+    });
+    state.accountNotice = { message: "Correo verificado correctamente.", error: false };
+    if (state.user) {
+      const session = await apiRequest("/auth/me");
+      state.user = session.user;
+      state.csrfToken = session.csrfToken;
+    }
+  } catch (error) {
+    state.accountNotice = { message: error.message, error: true };
+  } finally {
+    state.emailVerificationToken = null;
+    window.location.hash = "#/cuenta";
   }
 }
 
@@ -630,26 +663,30 @@ function renderIntegrationsPage() {
     const configured = real && real.status !== "not_configured";
     const status = connected ? "Conectada" : configured ? real.status : "Sin configurar";
     let action = "";
-    if (slug === "youtube" && state.user) {
+    if (state.user) {
       if (connected && can("sync:run")) {
-        action = '<button class="secondary-button integration-action" data-sync-platform="youtube" type="button">Sincronizar ahora</button>';
+        action = '<button class="secondary-button integration-action" data-sync-platform="' + escapeHtml(slug) + '" type="button">Sincronizar ahora</button>';
       } else if (real?.oauthAvailable && can("integrations:write")) {
-        action = '<button class="primary-button integration-action" data-oauth-platform="youtube" type="button">Conectar cuenta</button>';
+        action = '<button class="primary-button integration-action" data-oauth-platform="' + escapeHtml(slug) + '" type="button">Conectar cuenta</button>';
       } else if (!real?.oauthAvailable && can("integrations:write")) {
         action = '<button class="secondary-button integration-action" type="button" disabled>Falta configurar OAuth</button>';
       }
     }
-    return '<article class="integration-card"><div class="integration-top"><span class="platform-mark">' + escapeHtml(integration.platform.slice(0, 2).toUpperCase()) + '</span><div><h2>' + escapeHtml(integration.platform) + "</h2><p>" + escapeHtml(integration.provider) + '</p></div><span class="connection-status ' + (connected ? "active" : configured ? "demo" : "pending") + '">' + escapeHtml(status) + '</span></div><div class="integration-account"><span>Cuenta autorizada</span><strong>' + (connected ? escapeHtml(real.connectedAccount) : "Sin cuenta conectada") + '</strong></div><div class="tag-list">' + integration.metrics.map(function (metric) { return "<span>" + escapeHtml(metric) + "</span>"; }).join("") + '</div><div class="integration-footer"><small>' + (real && real.lastSyncAt ? "Ultima sincronizacion: " + escapeHtml(real.lastSyncAt) : "Sin sincronizacion oficial") + "</small>" + action + "</div></article>";
+    const schedule = connected && can("sync:run")
+      ? '<form class="sync-schedule" data-schedule-platform="' + escapeHtml(slug) + '"><label><input name="enabled" type="checkbox"' + (real.scheduleEnabled ? " checked" : "") + ' /> Sincronizacion automatica</label><select name="intervalMinutes" aria-label="Frecuencia de sincronizacion"><option value="60"' + (real.scheduleIntervalMinutes === 60 ? " selected" : "") + '>Cada hora</option><option value="360"' + (real.scheduleIntervalMinutes === 360 ? " selected" : "") + '>Cada 6 horas</option><option value="720"' + (real.scheduleIntervalMinutes === 720 ? " selected" : "") + '>Cada 12 horas</option><option value="1440"' + (real.scheduleIntervalMinutes === 1440 ? " selected" : "") + '>Cada dia</option></select><button class="secondary-button" type="submit">Guardar</button></form>'
+      : "";
+    const nextSync = real?.nextSyncAt ? "Proxima automatica: " + escapeHtml(real.nextSyncAt) : "Sin proxima ejecucion";
+    return '<article class="integration-card"><div class="integration-top"><span class="platform-mark">' + escapeHtml(integration.platform.slice(0, 2).toUpperCase()) + '</span><div><h2>' + escapeHtml(integration.platform) + "</h2><p>" + escapeHtml(integration.provider) + '</p></div><span class="connection-status ' + (connected ? "active" : configured ? "demo" : "pending") + '">' + escapeHtml(status) + '</span></div><div class="integration-account"><span>Cuenta autorizada</span><strong>' + (connected ? escapeHtml(real.connectedAccount) : "Sin cuenta conectada") + '</strong></div><div class="tag-list">' + integration.metrics.map(function (metric) { return "<span>" + escapeHtml(metric) + "</span>"; }).join("") + '</div>' + schedule + '<div class="integration-footer"><small>' + (real && real.lastSyncAt ? "Ultima sincronizacion: " + escapeHtml(real.lastSyncAt) + " · " + nextSync : "Sin sincronizacion oficial") + "</small>" + action + "</div></article>";
   }).join("");
   const oauthNotice = state.oauthNotice
-    ? '<section class="info-banner ' + (state.oauthNotice.status === "success" ? "success-banner" : "error-banner") + '"><strong>' + (state.oauthNotice.status === "success" ? "YouTube conectado correctamente" : "No se pudo conectar YouTube") + '</strong><p>' + (state.oauthNotice.status === "success" ? "La cuenta fue autorizada, sincronizada y guardada de forma segura." : "La autorizacion no se completo. Revisa la configuracion OAuth o vuelve a intentarlo.") + "</p></section>"
+    ? '<section class="info-banner ' + (state.oauthNotice.status === "success" ? "success-banner" : "error-banner") + '"><strong>' + (state.oauthNotice.status === "success" ? escapeHtml(state.oauthNotice.platform) + " conectado correctamente" : "No se pudo conectar " + escapeHtml(state.oauthNotice.platform)) + '</strong><p>' + (state.oauthNotice.status === "success" ? "La cuenta fue autorizada, sincronizada y guardada de forma segura." : "La autorizacion no se completo. Revisa la configuracion OAuth o vuelve a intentarlo.") + "</p></section>"
     : "";
   const configuration = can("integrations:write")
-    ? '<section class="panel"><div class="panel-header"><div><p class="eyebrow">Configuracion tecnica</p><h2>Credenciales de proveedor</h2></div></div><form id="integration-form" class="form-grid"><label>Plataforma<select name="platform" required><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option><option value="x">X / Twitter</option></select></label><label>Nombre interno<input name="displayName" required maxlength="80" placeholder="Cuenta corporativa" /></label><label>Client ID<input name="clientId" required autocomplete="off" /></label><label>Client secret<input name="clientSecret" type="password" required minlength="8" autocomplete="new-password" /></label><div class="form-actions"><button class="primary-button" type="submit">Guardar cifrado</button></div></form><div id="integration-message" class="form-message" hidden></div><p class="form-note">Las credenciales de YouTube usadas por el flujo oficial se configuran preferentemente mediante variables de entorno del servidor.</p></section>'
+    ? '<section class="panel"><div class="panel-header"><div><p class="eyebrow">Configuracion tecnica</p><h2>Credenciales de proveedor</h2></div></div><form id="integration-form" class="form-grid"><label>Plataforma<select name="platform" required><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option><option value="linkedin">LinkedIn</option><option value="youtube">YouTube</option><option value="x">X / Twitter</option></select></label><label>Nombre interno<input name="displayName" required maxlength="80" placeholder="Cuenta corporativa" /></label><label>Client ID<input name="clientId" required autocomplete="off" /></label><label>Client secret<input name="clientSecret" type="password" required minlength="8" autocomplete="new-password" /></label><div class="form-actions"><button class="primary-button" type="submit">Guardar cifrado</button></div></form><div id="integration-message" class="form-message" hidden></div><p class="form-note">El registro interno queda cifrado. Para activar OAuth oficial, las credenciales aprobadas de cada proveedor deben configurarse tambien como variables del servidor.</p></section>'
     : state.apiAvailable
       ? '<section class="info-banner"><strong>Acceso protegido</strong><p>Inicia sesion con rol Administrador o Analista para configurar credenciales. Nunca se solicitan contrasenas de redes sociales.</p></section>'
       : '<section class="info-banner"><strong>Demostracion online</strong><p>La configuracion real de credenciales esta disponible al ejecutar el sistema local con su backend seguro.</p></section>';
-  return oauthNotice + configuration + '<div id="oauth-message" class="form-message" hidden></div><section class="integration-grid">' + cards + '</section><section class="info-banner"><strong>Integracion oficial por etapas</strong><p>YouTube dispone del flujo completo OAuth, sincronizacion y datos reales. Instagram, Facebook, TikTok, LinkedIn y X se incorporaran reutilizando esta arquitectura cuando sus aplicaciones y permisos esten aprobados.</p></section>';
+  return oauthNotice + configuration + '<div id="oauth-message" class="form-message" hidden></div><section class="integration-grid">' + cards + '</section><section class="info-banner"><strong>Conectores oficiales preparados</strong><p>Cada red se activa con credenciales propias, permisos aprobados y consentimiento OAuth. Las metricas no disponibles se mantienen vacias; nunca se completan con estimaciones.</p></section>';
 }
 
 function renderSettingsPage() {
@@ -692,13 +729,49 @@ function renderAccountPage() {
   if (!state.apiAvailable) {
     return '<section class="info-banner"><strong>Acceso disponible en la version local</strong><p>La demostracion online permite recorrer los modulos y reportes sin almacenar usuarios ni credenciales. El registro y el inicio de sesion funcionan al abrir el proyecto localmente.</p></section>';
   }
+  const notice = state.accountNotice
+    ? '<section class="info-banner ' + (state.accountNotice.error ? "error-banner" : "success-banner") + '"><strong>' + (state.accountNotice.error ? "No se pudo completar" : "Operacion completada") + '</strong><p>' + escapeHtml(state.accountNotice.message) + "</p></section>"
+    : "";
+  const preview = state.accountPreviewUrl
+    ? '<section class="info-banner"><strong>Enlace disponible en este entorno</strong><p><a class="inline-link" href="' + escapeHtml(state.accountPreviewUrl) + '">Abrir enlace seguro</a></p></section>'
+    : "";
   if (state.user) {
-    return '<section class="account-panel panel"><div class="account-avatar">' + escapeHtml(state.user.displayName.slice(0, 2).toUpperCase()) + '</div><div><p class="eyebrow">Sesion activa</p><h2>' + escapeHtml(state.user.displayName) + '</h2><p>' + escapeHtml(state.user.email) + ' · ' + escapeHtml(state.user.role) + '</p><div class="tag-list">' + state.user.permissions.map(function (permission) { return "<span>" + escapeHtml(permission) + "</span>"; }).join("") + '</div><button id="logout-button" class="secondary-button" type="button">Cerrar sesion</button></div></section>';
+    const organizations = state.organizations || [];
+    const organizationOptions = organizations.map(function (organization) {
+      return '<option value="' + organization.id + '"' + (organization.id === state.user.organization?.id ? " selected" : "") + '>' + escapeHtml(organization.name) + '</option>';
+    }).join("");
+    const organizationControl = organizations.length
+      ? '<form id="organization-select-form" class="organization-control"><label>Organizacion activa<select name="organizationId">' + organizationOptions + '</select></label><button class="secondary-button" type="submit">Cambiar</button></form>'
+      : "";
+    const createOrganization = can("users:manage")
+      ? '<form id="organization-create-form" class="organization-control"><label>Nueva organizacion<input name="name" required minlength="2" maxlength="100" /></label><button class="secondary-button" type="submit">Crear</button></form>'
+      : "";
+    const emailSecurity = state.user.emailVerified
+      ? '<div class="security-state success"><strong>Correo verificado</strong><span>La direccion de acceso fue confirmada.</span></div>'
+      : '<div class="security-state warning"><strong>Correo pendiente</strong><span>Confirma la direccion para completar la proteccion de la cuenta.</span><button id="verify-email-button" class="secondary-button" type="button">Enviar verificacion</button></div>';
+    const mfaSetup = state.mfaSetup
+      ? '<div class="mfa-setup"><img src="' + escapeHtml(state.mfaSetup.qrCodeDataUrl) + '" alt="Codigo QR para configurar 2FA" /><div><p>Escanea el codigo con tu aplicacion autenticadora o introduce esta clave:</p><code>' + escapeHtml(state.mfaSetup.secret) + '</code><form id="mfa-confirm-form" class="security-form"><label>Codigo de 6 digitos<input name="code" inputmode="numeric" pattern="[0-9]{6}" required autocomplete="one-time-code" /></label><button class="primary-button" type="submit">Confirmar 2FA</button></form></div></div>'
+      : "";
+    const mfaSecurity = state.user.mfaEnabled
+      ? '<div class="security-state success"><strong>Segundo factor activo</strong><span>El inicio de sesion requiere un codigo temporal o de recuperacion.</span></div><form id="mfa-disable-form" class="security-form"><label>Contrasena<input name="password" type="password" required autocomplete="current-password" /></label><label>Codigo 2FA o recuperacion<input name="code" required autocomplete="one-time-code" /></label><button class="secondary-button danger-button" type="submit">Desactivar 2FA</button></form>'
+      : '<div class="security-state"><strong>Segundo factor desactivado</strong><span>Protege el acceso con una aplicacion autenticadora.</span><button id="mfa-setup-button" class="secondary-button" type="button">Configurar 2FA</button></div>' + mfaSetup;
+    const recoveryCodes = state.recoveryCodes
+      ? '<section class="recovery-codes"><strong>Codigos de recuperacion</strong><p>Guardalos en un lugar seguro. Cada codigo funciona una sola vez.</p><div>' + state.recoveryCodes.map(function (code) { return "<code>" + escapeHtml(code) + "</code>"; }).join("") + "</div></section>"
+      : "";
+    return notice + preview + '<section class="account-layout"><article class="account-panel panel"><div class="account-avatar">' + escapeHtml(state.user.displayName.slice(0, 2).toUpperCase()) + '</div><div><p class="eyebrow">Sesion activa</p><h2>' + escapeHtml(state.user.displayName) + '</h2><p>' + escapeHtml(state.user.email) + ' · ' + escapeHtml(state.user.role) + '</p><p><strong>' + escapeHtml(state.user.organization?.name || "Organizacion sin asignar") + '</strong></p><div class="tag-list">' + state.user.permissions.map(function (permission) { return "<span>" + escapeHtml(permission) + "</span>"; }).join("") + '</div>' + organizationControl + createOrganization + '<div id="organization-message" class="form-message" hidden></div><button id="logout-button" class="secondary-button" type="button">Cerrar sesion</button></div></article><article class="account-security panel"><p class="eyebrow">Seguridad</p><h2>Proteccion de la cuenta</h2>' + emailSecurity + mfaSecurity + recoveryCodes + '<div id="security-message" class="form-message" hidden></div></article></section>';
+  }
+  if (state.passwordResetToken) {
+    return notice + '<section class="auth-panel panel"><div><p class="eyebrow">Recuperacion</p><h2>Crear nueva contrasena</h2><p>El enlace solo puede utilizarse una vez y caduca a los 30 minutos.</p></div><form id="password-reset-form" class="auth-form"><label>Nueva contrasena<input name="password" type="password" required minlength="12" autocomplete="new-password" /></label><label>Repetir contrasena<input name="confirmation" type="password" required minlength="12" autocomplete="new-password" /></label><button class="primary-button" type="submit">Actualizar contrasena</button></form><div id="auth-message" class="form-message" hidden></div></section>';
+  }
+  if (state.mfaChallengeToken) {
+    return notice + '<section class="auth-panel panel"><div><p class="eyebrow">Segundo factor</p><h2>Confirma tu acceso</h2><p>Introduce el codigo temporal de tu aplicacion o uno de recuperacion.</p></div><form id="mfa-login-form" class="auth-form"><label>Codigo de seguridad<input name="code" required autofocus autocomplete="one-time-code" /></label><button class="primary-button" type="submit">Verificar e iniciar sesion</button></form><div id="auth-message" class="form-message" hidden></div></section>';
   }
   const initial = state.needsInitialAdmin;
-  return '<section class="auth-panel panel"><div><p class="eyebrow">' + (initial ? "Configuracion inicial" : "Acceso") + '</p><h2>' + (initial ? "Crear administrador inicial" : "Iniciar sesion") + '</h2><p>' + (initial ? "Este formulario solo esta disponible mientras no exista ningun usuario." : "Usa una cuenta registrada por un administrador.") + '</p></div><form id="auth-form" class="auth-form">' +
+  const forgotPassword = initial ? "" : '<article class="password-help panel"><div><p class="eyebrow">Recuperacion</p><h2>Olvide mi contrasena</h2><p>Te enviaremos un enlace de un solo uso si la cuenta existe.</p></div><form id="forgot-password-form" class="auth-form"><label>Correo<input name="email" type="email" required autocomplete="email" /></label><button class="secondary-button" type="submit">Enviar enlace</button></form><div id="recovery-message" class="form-message" hidden></div></article>';
+  return notice + preview + '<section class="auth-workspace"><article class="auth-panel panel"><div><p class="eyebrow">' + (initial ? "Configuracion inicial" : "Acceso") + '</p><h2>' + (initial ? "Crear administrador inicial" : "Iniciar sesion") + '</h2><p>' + (initial ? "Este formulario solo esta disponible mientras no exista ningun usuario." : "Usa una cuenta registrada por un administrador.") + '</p></div><form id="auth-form" class="auth-form">' +
     (initial ? '<label>Nombre<input name="displayName" required minlength="2" maxlength="80" autocomplete="name" /></label>' : "") +
-    '<label>Correo<input name="email" type="email" required autocomplete="email" /></label><label>Contrasena<input name="password" type="password" required minlength="12" autocomplete="' + (initial ? "new-password" : "current-password") + '" /></label><button class="primary-button" type="submit">' + (initial ? "Crear cuenta segura" : "Iniciar sesion") + '</button></form><div id="auth-message" class="form-message" hidden></div></section>';
+    (initial ? '<label>Organizacion<input name="organizationName" required minlength="2" maxlength="100" value="Organizacion principal" /></label>' : "") +
+    '<label>Correo<input name="email" type="email" required autocomplete="email" /></label><label>Contrasena<input name="password" type="password" required minlength="12" autocomplete="' + (initial ? "new-password" : "current-password") + '" /></label><button class="primary-button" type="submit">' + (initial ? "Crear cuenta segura" : "Iniciar sesion") + '</button></form><div id="auth-message" class="form-message" hidden></div></article>' + forgotPassword + "</section>";
 }
 
 function renderPostsTable(posts) {
@@ -1004,6 +1077,27 @@ function bindViewEvents(routeName, data) {
         }
       });
     });
+    document.querySelectorAll("[data-schedule-platform]").forEach(function (form) {
+      form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const message = document.querySelector("#oauth-message");
+        const values = new FormData(form);
+        try {
+          await apiRequest("/integrations/" + form.dataset.schedulePlatform + "/schedule", {
+            method: "PATCH",
+            body: {
+              enabled: values.get("enabled") === "on",
+              intervalMinutes: Number(values.get("intervalMinutes"))
+            }
+          });
+          state.persistedIntegrations = null;
+          await hydrateRoute("integraciones");
+          showMessage(document.querySelector("#oauth-message"), "Programacion actualizada.", false);
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    });
   }
   if (routeName === "configuracion") {
     const form = document.querySelector("#user-form");
@@ -1054,13 +1148,156 @@ function bindViewEvents(routeName, data) {
         try {
           const endpoint = state.needsInitialAdmin ? "/auth/register" : "/auth/login";
           const result = await apiRequest(endpoint, { method: "POST", body: values });
+          if (result.mfaRequired) {
+            state.mfaChallengeToken = result.challengeToken;
+            state.accountNotice = null;
+            render();
+            return;
+          }
           state.user = result.user;
           state.csrfToken = result.csrfToken;
+          state.accountPreviewUrl = result.previewVerificationUrl || null;
           state.needsInitialAdmin = false;
           state.users = null;
           state.persistedIntegrations = null;
           await loadLiveData();
           window.location.hash = "#/dashboard";
+          render();
+        } catch (error) {
+          if (error.payload?.error === "email_unverified") {
+            state.accountPreviewUrl = error.payload.previewVerificationUrl || null;
+            state.accountNotice = { message: error.message, error: true };
+            render();
+            return;
+          }
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const mfaLoginForm = document.querySelector("#mfa-login-form");
+    if (mfaLoginForm) {
+      mfaLoginForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(mfaLoginForm));
+        const message = document.querySelector("#auth-message");
+        try {
+          const result = await apiRequest("/auth/login/2fa", {
+            method: "POST",
+            body: { challengeToken: state.mfaChallengeToken, code: values.code }
+          });
+          state.user = result.user;
+          state.csrfToken = result.csrfToken;
+          state.mfaChallengeToken = null;
+          state.accountNotice = null;
+          state.users = null;
+          state.persistedIntegrations = null;
+          await loadLiveData();
+          window.location.hash = "#/dashboard";
+          render();
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const forgotPasswordForm = document.querySelector("#forgot-password-form");
+    if (forgotPasswordForm) {
+      forgotPasswordForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(forgotPasswordForm));
+        const message = document.querySelector("#recovery-message");
+        try {
+          const result = await apiRequest("/auth/password/forgot", { method: "POST", body: values });
+          state.accountPreviewUrl = result.previewResetUrl || null;
+          state.accountNotice = { message: result.message, error: false };
+          render();
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const passwordResetForm = document.querySelector("#password-reset-form");
+    if (passwordResetForm) {
+      passwordResetForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(passwordResetForm));
+        const message = document.querySelector("#auth-message");
+        if (values.password !== values.confirmation) {
+          showMessage(message, "Las contrasenas no coinciden.", true);
+          return;
+        }
+        try {
+          await apiRequest("/auth/password/reset", {
+            method: "POST",
+            body: { token: state.passwordResetToken, password: values.password }
+          });
+          state.passwordResetToken = null;
+          state.accountPreviewUrl = null;
+          state.accountNotice = { message: "Contrasena actualizada. Ya puedes iniciar sesion.", error: false };
+          render();
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const verifyEmail = document.querySelector("#verify-email-button");
+    if (verifyEmail) {
+      verifyEmail.addEventListener("click", async function () {
+        const message = document.querySelector("#security-message");
+        try {
+          const result = await apiRequest("/auth/email-verification/request", { method: "POST" });
+          state.accountPreviewUrl = result.previewVerificationUrl || null;
+          state.accountNotice = { message: "La verificacion de correo fue preparada.", error: false };
+          render();
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const mfaSetupButton = document.querySelector("#mfa-setup-button");
+    if (mfaSetupButton) {
+      mfaSetupButton.addEventListener("click", async function () {
+        const message = document.querySelector("#security-message");
+        try {
+          state.mfaSetup = await apiRequest("/auth/mfa/setup", { method: "POST" });
+          render();
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const mfaConfirmForm = document.querySelector("#mfa-confirm-form");
+    if (mfaConfirmForm) {
+      mfaConfirmForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(mfaConfirmForm));
+        const message = document.querySelector("#security-message");
+        try {
+          const result = await apiRequest("/auth/mfa/confirm", { method: "POST", body: values });
+          const session = await apiRequest("/auth/me");
+          state.user = session.user;
+          state.csrfToken = session.csrfToken;
+          state.mfaSetup = null;
+          state.recoveryCodes = result.recoveryCodes;
+          state.accountNotice = { message: "El segundo factor quedo activo.", error: false };
+          render();
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const mfaDisableForm = document.querySelector("#mfa-disable-form");
+    if (mfaDisableForm) {
+      mfaDisableForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(mfaDisableForm));
+        const message = document.querySelector("#security-message");
+        try {
+          await apiRequest("/auth/mfa/disable", { method: "POST", body: values });
+          const session = await apiRequest("/auth/me");
+          state.user = session.user;
+          state.csrfToken = session.csrfToken;
+          state.recoveryCodes = null;
+          state.accountNotice = { message: "El segundo factor fue desactivado.", error: false };
           render();
         } catch (error) {
           showMessage(message, error.message, true);
@@ -1074,10 +1311,53 @@ function bindViewEvents(routeName, data) {
         state.user = null;
         state.csrfToken = null;
         state.users = null;
+        state.organizations = null;
         state.persistedIntegrations = null;
         state.liveData = null;
+        state.mfaSetup = null;
+        state.recoveryCodes = null;
+        state.accountPreviewUrl = null;
         window.location.hash = "#/dashboard";
         render();
+      });
+    }
+    const organizationSelect = document.querySelector("#organization-select-form");
+    if (organizationSelect) {
+      organizationSelect.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(organizationSelect));
+        const message = document.querySelector("#organization-message");
+        try {
+          await apiRequest("/organizations/" + values.organizationId + "/select", { method: "POST" });
+          const session = await apiRequest("/auth/me");
+          state.user = session.user;
+          state.csrfToken = session.csrfToken;
+          state.users = null;
+          state.persistedIntegrations = null;
+          state.liveData = null;
+          await loadLiveData();
+          showMessage(message, "Organizacion activa actualizada.", false);
+          render();
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
+      });
+    }
+    const organizationCreate = document.querySelector("#organization-create-form");
+    if (organizationCreate) {
+      organizationCreate.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(organizationCreate));
+        const message = document.querySelector("#organization-message");
+        try {
+          await apiRequest("/organizations", { method: "POST", body: values });
+          organizationCreate.reset();
+          state.organizations = null;
+          await hydrateRoute("cuenta");
+          showMessage(document.querySelector("#organization-message"), "Organizacion creada correctamente.", false);
+        } catch (error) {
+          showMessage(message, error.message, true);
+        }
       });
     }
   }
@@ -1101,6 +1381,12 @@ async function hydrateRoute(routeName) {
       state.persistedIntegrations = [];
       const payload = await apiRequest("/integrations");
       state.persistedIntegrations = payload.integrations;
+      if (currentRoute() === routeName) render();
+    }
+    if (routeName === "cuenta" && state.user && state.organizations === null) {
+      state.organizations = [];
+      const payload = await apiRequest("/organizations");
+      state.organizations = payload.organizations;
       if (currentRoute() === routeName) render();
     }
   } catch (error) {
@@ -1140,5 +1426,6 @@ updateAccountOptions();
 bindGlobalEvents();
 if (!window.location.hash) window.location.hash = "#/dashboard";
 await bootstrapAuth();
+await processAccountLink();
 await loadLiveData();
 render();

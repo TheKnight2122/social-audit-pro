@@ -39,15 +39,27 @@ export function openDatabase(databasePath = process.env.DATABASE_PATH || "data/s
 
 export function logActivity(database, {
   userId = null,
+  organizationId = null,
   action,
   entityType = null,
   entityId = null,
   metadata = {},
   ipAddress = null
 }) {
+  const resolvedOrganizationId = organizationId || (userId
+    ? database.prepare("SELECT default_organization_id AS id FROM users WHERE id = ?").get(userId)?.id
+    : null);
   database.prepare(
     `INSERT INTO activity_logs
-      (user_id, action, entity_type, entity_id, metadata_json, ip_address)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(userId, action, entityType, entityId == null ? null : String(entityId), JSON.stringify(metadata), ipAddress);
+      (organization_id, user_id, action, entity_type, entity_id, metadata_json, ip_address)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    resolvedOrganizationId,
+    userId,
+    action,
+    entityType,
+    entityId == null ? null : String(entityId),
+    JSON.stringify(metadata),
+    ipAddress
+  );
 }

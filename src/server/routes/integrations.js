@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { logActivity } from "../database.js";
 import { requireAuth, requireCsrf, requirePermission } from "../middleware.js";
-import { encryptSecret, hashToken } from "../security.js";
+import { decryptSecret, encryptSecret, hashToken } from "../security.js";
+import { hasPermission } from "../permissions.js";
 import {
-  getUserConnection,
+  getOrganizationConnection,
   markConnectionError,
   persistOAuthSync,
   readConnectionTokens
@@ -16,17 +17,28 @@ export function createIntegrationsRouter({
   database,
   encryptionSecret,
   youtubeProvider,
+  providers = {},
   appBaseUrl = "http://127.0.0.1:4173"
 }) {
   const router = Router();
+  const providerRegistry = { ...providers };
+  if (youtubeProvider) providerRegistry.youtube = youtubeProvider;
 
-  function callbackRedirect(status, reason) {
+  function callbackRedirect(platform, status, reason) {
     const url = new URL(appBaseUrl);
-    url.searchParams.set("oauth", "youtube");
+    url.searchParams.set("oauth", platform);
     url.searchParams.set("status", status);
     if (reason) url.searchParams.set("reason", reason);
     url.hash = "/integraciones";
     return url.toString();
+  }
+
+  function providerFor(platform) {
+    return providerRegistry[String(platform || "").toLowerCase()];
+  }
+
+  function codeChallenge(verifier) {
+    return createHash("sha256").update(verifier).digest("base64url");
   }
 
   router.get("/", requireAuth, (request, response) => {
@@ -36,32 +48,42 @@ export function createIntegrationsRouter({
               i.display_name AS displayName, i.client_id IS NOT NULL AS hasClientId,
               i.client_secret_encrypted IS NOT NULL AS hasClientSecret,
               i.last_sync_at AS lastSyncAt,
-              COUNT(a.id) AS accountCount
+              0 AS accountCount
        FROM social_platforms p
-       LEFT JOIN integrations i ON i.platform_slug = p.slug
-       LEFT JOIN social_accounts a ON a.integration_id = i.id
+       LEFT JOIN organization_integrations i
+         ON i.platform_slug = p.slug AND i.organization_id = ?
        GROUP BY p.slug, p.name, i.id
        ORDER BY p.name`
-    ).all().map((integration) => {
-      const connection = getUserConnection(database, request.user.id, integration.platform);
+    ).all(request.user.organizationId).map((integration) => {
+      const connection = getOrganizationConnection(database, request.user.organizationId, integration.platform);
       return {
         ...integration,
         status: connection?.status || integration.status,
-        oauthAvailable: integration.platform === "youtube" && Boolean(youtubeProvider?.configured),
+        oauthAvailable: Boolean(providerFor(integration.platform)?.configured),
         connectionId: connection?.id || null,
         connectedAccount: connection?.displayName || null,
         lastSyncAt: connection?.lastSyncAt || integration.lastSyncAt,
-        accountCount: connection ? 1 : 0
+        accountCount: connection ? 1 : 0,
+        scheduleEnabled: Boolean(connection?.scheduleEnabled),
+        scheduleIntervalMinutes: connection?.scheduleIntervalMinutes || null,
+        nextSyncAt: connection?.nextSyncAt || null,
+        scheduleLastError: connection?.scheduleLastError || null
       };
     });
     response.json({ integrations });
   });
 
-  router.get("/youtube/oauth/start", requirePermission("integrations:write"), (request, response) => {
-    if (!youtubeProvider?.configured) {
+  router.get("/:platform/oauth/start", requirePermission("integrations:write"), (request, response) => {
+    const platform = String(request.params.platform || "").toLowerCase();
+    const provider = providerFor(platform);
+    const supported = database.prepare("SELECT slug FROM social_platforms WHERE slug = ?").get(platform);
+    if (!supported) {
+      return response.status(404).json({ error: "platform_not_found", message: "Plataforma no soportada." });
+    }
+    if (!provider?.configured) {
       return response.status(503).json({
-        error: "youtube_not_configured",
-        message: "Configura las credenciales OAuth de YouTube en el servidor."
+        error: "provider_not_configured",
+        message: "Configura las credenciales OAuth de " + platform + " en el servidor."
       });
     }
     if (!encryptionSecret) {
@@ -73,77 +95,109 @@ export function createIntegrationsRouter({
 
     database.prepare("DELETE FROM oauth_states WHERE expires_at <= CURRENT_TIMESTAMP").run();
     const state = randomBytes(32).toString("base64url");
+    const codeVerifier = provider.pkce ? randomBytes(48).toString("base64url") : null;
     database.prepare(
-      `INSERT INTO oauth_states (state_hash, user_id, platform_slug, expires_at)
-       VALUES (?, ?, 'youtube', datetime('now', '+10 minutes'))`
-    ).run(hashToken(state), request.user.id);
-    return response.json({ authorizationUrl: youtubeProvider.getAuthorizationUrl(state) });
+      `INSERT INTO oauth_states
+        (state_hash, user_id, organization_id, platform_slug,
+         code_verifier_encrypted, expires_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now', '+10 minutes'))`
+    ).run(
+      hashToken(state),
+      request.user.id,
+      request.user.organizationId,
+      platform,
+      codeVerifier ? encryptSecret(codeVerifier, encryptionSecret) : null
+    );
+    return response.json({
+      authorizationUrl: provider.getAuthorizationUrl(state, {
+        codeChallenge: codeVerifier ? codeChallenge(codeVerifier) : undefined
+      })
+    });
   });
 
-  router.get("/youtube/oauth/callback", async (request, response) => {
+  router.get("/:platform/oauth/callback", async (request, response) => {
+    const platform = String(request.params.platform || "").toLowerCase();
+    const provider = providerFor(platform);
     const state = String(request.query.state || "");
     const stateHash = hashToken(state);
     const oauthState = database.prepare(
-      `SELECT s.user_id AS userId
+      `SELECT s.user_id AS userId, s.organization_id AS organizationId,
+              s.code_verifier_encrypted AS codeVerifierEncrypted, m.role_slug AS role
        FROM oauth_states s
        JOIN users u ON u.id = s.user_id AND u.status = 'active'
-       WHERE s.state_hash = ? AND s.platform_slug = 'youtube'
+       JOIN organization_members m ON m.user_id = s.user_id
+         AND m.organization_id = s.organization_id AND m.status = 'active'
+       JOIN organizations o ON o.id = s.organization_id AND o.status = 'active'
+       WHERE s.state_hash = ? AND s.platform_slug = ?
          AND s.expires_at > CURRENT_TIMESTAMP`
-    ).get(stateHash);
+    ).get(stateHash, platform);
     database.prepare("DELETE FROM oauth_states WHERE state_hash = ?").run(stateHash);
 
-    if (!oauthState) return response.redirect(callbackRedirect("error", "invalid_state"));
-    if (request.query.error) return response.redirect(callbackRedirect("error", "authorization_denied"));
+    if (!provider?.configured) return response.redirect(callbackRedirect(platform, "error", "provider_not_configured"));
+    if (!oauthState || !hasPermission(oauthState, "integrations:write")) return response.redirect(callbackRedirect(platform, "error", "invalid_state"));
+    if (request.query.error) return response.redirect(callbackRedirect(platform, "error", "authorization_denied"));
     const code = String(request.query.code || "");
-    if (!code) return response.redirect(callbackRedirect("error", "missing_code"));
+    if (!code) return response.redirect(callbackRedirect(platform, "error", "missing_code"));
 
     try {
-      const exchangedTokens = await youtubeProvider.exchangeCode(code);
-      const data = await youtubeProvider.fetchData(exchangedTokens);
+      const codeVerifier = oauthState.codeVerifierEncrypted
+        ? decryptSecret(oauthState.codeVerifierEncrypted, encryptionSecret)
+        : undefined;
+      const exchangedTokens = await provider.exchangeCode(code, { codeVerifier });
+      const data = await provider.fetchData(exchangedTokens);
       const result = persistOAuthSync({
         database,
         encryptionSecret,
         userId: oauthState.userId,
-        platform: "youtube",
+        organizationId: oauthState.organizationId,
+        platform,
         data,
         tokens: data.tokens
       });
       logActivity(database, {
         userId: oauthState.userId,
-        action: "oauth.youtube_connected",
+        organizationId: oauthState.organizationId,
+        action: "oauth." + platform + "_connected",
         entityType: "oauth_connection",
         entityId: result.connectionId,
         metadata: { accountId: result.accountId, recordsImported: result.recordsImported },
         ipAddress: request.ip
       });
-      return response.redirect(callbackRedirect("success"));
+      return response.redirect(callbackRedirect(platform, "success"));
     } catch (error) {
       if (!error.statusCode || error.statusCode >= 500) {
-        console.error("No se pudo completar OAuth de YouTube:", error.message);
+        console.error("No se pudo completar OAuth de " + platform + ":", error.message);
       }
-      return response.redirect(callbackRedirect("error", "provider_error"));
+      return response.redirect(callbackRedirect(platform, "error", "provider_error"));
     }
   });
 
-  router.post("/youtube/sync", requirePermission("sync:run"), requireCsrf, async (request, response, next) => {
-    const connection = getUserConnection(database, request.user.id, "youtube");
+  router.post("/:platform/sync", requirePermission("sync:run"), requireCsrf, async (request, response, next) => {
+    const platform = String(request.params.platform || "").toLowerCase();
+    const provider = providerFor(platform);
+    const connection = getOrganizationConnection(database, request.user.organizationId, platform);
     if (!connection) {
-      return response.status(404).json({ error: "connection_not_found", message: "Conecta primero una cuenta de YouTube." });
+      return response.status(404).json({ error: "connection_not_found", message: "Conecta primero una cuenta de " + platform + "." });
+    }
+    if (!provider?.configured) {
+      return response.status(503).json({ error: "provider_not_configured", message: "El proveedor no esta configurado." });
     }
     try {
       const tokens = readConnectionTokens(connection, encryptionSecret);
-      const data = await youtubeProvider.fetchData(tokens);
+      const data = await provider.fetchData(tokens);
       const result = persistOAuthSync({
         database,
         encryptionSecret,
         userId: request.user.id,
-        platform: "youtube",
+        organizationId: request.user.organizationId,
+        platform,
         data,
         tokens: data.tokens
       });
       logActivity(database, {
         userId: request.user.id,
-        action: "sync.youtube_completed",
+        organizationId: request.user.organizationId,
+        action: "sync." + platform + "_completed",
         entityType: "oauth_connection",
         entityId: connection.id,
         metadata: { recordsImported: result.recordsImported },
@@ -154,6 +208,45 @@ export function createIntegrationsRouter({
       markConnectionError(database, connection.id, error);
       return next(error);
     }
+  });
+
+  router.patch("/:platform/schedule", requirePermission("sync:run"), requireCsrf, (request, response) => {
+    const platform = String(request.params.platform || "").toLowerCase();
+    const connection = getOrganizationConnection(database, request.user.organizationId, platform);
+    if (!connection) {
+      return response.status(404).json({ error: "connection_not_found", message: "Conecta primero una cuenta de " + platform + "." });
+    }
+    const enabled = request.body.enabled !== false;
+    const intervalMinutes = Number(request.body.intervalMinutes || connection.scheduleIntervalMinutes || 360);
+    if (!Number.isInteger(intervalMinutes) || intervalMinutes < 15 || intervalMinutes > 10080) {
+      return response.status(400).json({
+        error: "validation_error",
+        message: "El intervalo debe estar entre 15 y 10080 minutos."
+      });
+    }
+    database.prepare(
+      `INSERT INTO sync_schedules
+        (organization_id, connection_id, enabled, interval_minutes, next_run_at)
+       VALUES (?, ?, ?, ?, datetime('now', '+' || ? || ' minutes'))
+       ON CONFLICT(connection_id) DO UPDATE SET
+         enabled = excluded.enabled,
+         interval_minutes = excluded.interval_minutes,
+         next_run_at = CASE
+           WHEN excluded.enabled = 1 THEN excluded.next_run_at
+           ELSE sync_schedules.next_run_at
+         END,
+         updated_at = CURRENT_TIMESTAMP`
+    ).run(request.user.organizationId, connection.id, enabled ? 1 : 0, intervalMinutes, intervalMinutes);
+    logActivity(database, {
+      userId: request.user.id,
+      organizationId: request.user.organizationId,
+      action: "sync.schedule_updated",
+      entityType: "oauth_connection",
+      entityId: connection.id,
+      metadata: { platform, enabled, intervalMinutes },
+      ipAddress: request.ip
+    });
+    return response.json({ platform, enabled, intervalMinutes });
   });
 
   router.post("/:platform/configure", requirePermission("integrations:write"), requireCsrf, (request, response) => {
@@ -176,18 +269,27 @@ export function createIntegrationsRouter({
 
     const encryptedSecret = encryptSecret(clientSecret, encryptionSecret);
     database.prepare(
-      `INSERT INTO integrations
-        (platform_slug, display_name, client_id, client_secret_encrypted, status, created_by)
-       VALUES (?, ?, ?, ?, 'configured', ?)
-       ON CONFLICT(platform_slug) DO UPDATE SET
+      `INSERT INTO organization_integrations
+        (organization_id, platform_slug, display_name, client_id,
+         client_secret_encrypted, status, created_by)
+       VALUES (?, ?, ?, ?, ?, 'configured', ?)
+       ON CONFLICT(organization_id, platform_slug) DO UPDATE SET
          display_name = excluded.display_name,
          client_id = excluded.client_id,
          client_secret_encrypted = excluded.client_secret_encrypted,
          status = 'configured',
          updated_at = CURRENT_TIMESTAMP`
-    ).run(platform, displayName, clientId, encryptedSecret, request.user.id);
+    ).run(
+      request.user.organizationId,
+      platform,
+      displayName,
+      clientId,
+      encryptedSecret,
+      request.user.id
+    );
     logActivity(database, {
       userId: request.user.id,
+      organizationId: request.user.organizationId,
       action: "integrations.configured",
       entityType: "integration",
       entityId: platform,
@@ -216,25 +318,45 @@ export function createIntegrationsRouter({
           const exists = database.prepare("SELECT slug FROM social_platforms WHERE slug = ?").get(platform);
           if (!exists) throw Object.assign(new Error("Plataforma no soportada."), { statusCode: 404 });
           const inserted = database.prepare(
-            `INSERT INTO integrations (platform_slug, display_name, status, created_by)
-             VALUES (?, ?, 'connected', ?)`
-          ).run(platform, platform + " import", request.user.id);
+            `INSERT INTO integrations
+              (organization_id, platform_slug, display_name, status, created_by)
+             VALUES (?, ?, ?, 'connected', ?)`
+          ).run(request.user.organizationId, platform, platform + " import", request.user.id);
           integration = { id: Number(inserted.lastInsertRowid) };
         }
 
         const syncRun = database.prepare(
           "INSERT INTO sync_runs (integration_id, status) VALUES (?, 'running')"
         ).run(integration.id);
+        const conflictingAccount = database.prepare(
+          `SELECT id, organization_id AS organizationId
+           FROM social_accounts WHERE integration_id = ? AND external_id = ?`
+        ).get(integration.id, String(account.externalId));
+        if (conflictingAccount && conflictingAccount.organizationId !== request.user.organizationId) {
+          throw Object.assign(
+            new Error("Esta cuenta social ya pertenece a otra organizacion."),
+            { statusCode: 409 }
+          );
+        }
         database.prepare(
-          `INSERT INTO social_accounts (integration_id, external_id, name, handle, metadata_json)
-           VALUES (?, ?, ?, ?, ?)
+          `INSERT INTO social_accounts
+            (organization_id, integration_id, external_id, name, handle, metadata_json)
+           VALUES (?, ?, ?, ?, ?, ?)
            ON CONFLICT(integration_id, external_id) DO UPDATE SET
              name = excluded.name, handle = excluded.handle,
              metadata_json = excluded.metadata_json, updated_at = CURRENT_TIMESTAMP`
-        ).run(integration.id, String(account.externalId), String(account.name), account.handle || null, JSON.stringify(account.metadata || {}));
+        ).run(
+          request.user.organizationId,
+          integration.id,
+          String(account.externalId),
+          String(account.name),
+          account.handle || null,
+          JSON.stringify(account.metadata || {})
+        );
         const socialAccount = database.prepare(
-          "SELECT id FROM social_accounts WHERE integration_id = ? AND external_id = ?"
-        ).get(integration.id, String(account.externalId));
+          `SELECT id FROM social_accounts
+           WHERE organization_id = ? AND integration_id = ? AND external_id = ?`
+        ).get(request.user.organizationId, integration.id, String(account.externalId));
 
         const insertMetric = database.prepare(
           `INSERT INTO metric_snapshots (account_id, metric_key, metric_value, recorded_at, source)
@@ -284,11 +406,20 @@ export function createIntegrationsRouter({
           `UPDATE integrations SET status = 'connected', last_sync_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP WHERE id = ?`
         ).run(integration.id);
+        database.prepare(
+          `INSERT INTO organization_integrations
+            (organization_id, platform_slug, display_name, status, last_sync_at, created_by)
+           VALUES (?, ?, ?, 'connected', CURRENT_TIMESTAMP, ?)
+           ON CONFLICT(organization_id, platform_slug) DO UPDATE SET
+             status = 'connected', last_sync_at = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP`
+        ).run(request.user.organizationId, platform, platform + " import", request.user.id);
         return { syncRunId: Number(syncRun.lastInsertRowid), accountId: socialAccount.id, imported };
       })();
 
       logActivity(database, {
         userId: request.user.id,
+        organizationId: request.user.organizationId,
         action: "sync.import_completed",
         entityType: "sync_run",
         entityId: result.syncRunId,

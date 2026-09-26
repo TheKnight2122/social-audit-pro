@@ -2,48 +2,36 @@
 
 ## Estado
 
-Persistencia SQLite implementada mediante `better-sqlite3`. La migracion `migrations/001-initial.sql` se aplica al abrir la base y activa claves foraneas y modo WAL.
+Persistencia SQLite implementada con `better-sqlite3`, claves foraneas y WAL. Las migraciones `001` a `006` se aplican y registran en orden al abrir la base.
 
 ## Entidades principales
 
-- users: usuarios del sistema.
-- roles: roles y permisos.
-- sessions: sesiones autenticadas con hash del token y expiracion.
-- social_platforms: redes sociales soportadas.
-- integrations: configuracion y secretos cifrados por plataforma.
-- social_accounts: cuentas conectadas o importadas.
-- posts: publicaciones analizadas.
-- metric_snapshots: metricas historicas por cuenta y fecha.
-- reports: reportes ejecutivos.
-- sync_runs: ejecuciones de importacion o sincronizacion.
-- activity_logs: registro de acciones relevantes.
+- Identidad: `users`, `roles`, `sessions`, `login_attempts`, `auth_tokens` y `email_outbox`.
+- Organizaciones: `organizations` y `organization_members`.
+- Plataformas: `social_platforms`, `integrations` y `organization_integrations`.
+- OAuth: `oauth_states`, `oauth_connections` y `oauth_sync_runs`.
+- Sincronizacion: `sync_schedules` y `sync_runs`.
+- Analitica: `social_accounts`, `posts` y `metric_snapshots`.
+- Operacion: `reports` y `activity_logs`.
 
-## Relaciones
+## Reglas de aislamiento
 
-```mermaid
-erDiagram
-    USERS ||--o{ SOCIAL_ACCOUNTS : manages
-    ROLES ||--o{ USERS : assigns
-    SOCIAL_NETWORKS ||--o{ SOCIAL_ACCOUNTS : supports
-    SOCIAL_ACCOUNTS ||--o{ POSTS : contains
-    SOCIAL_ACCOUNTS ||--o{ METRICS : has
-    POSTS ||--o{ METRICS : has
-    PERIODS ||--o{ AUDITS : evaluates
-    SOCIAL_ACCOUNTS ||--o{ AUDITS : audited
-    AUDITS ||--o{ RECOMMENDATIONS : produces
-    AUDITS ||--o{ REPORTS : summarizes
-    SOCIAL_ACCOUNTS ||--o{ SYNC_JOBS : syncs
-    USERS ||--o{ ACTIVITY_LOGS : creates
-```
+Las sesiones conservan una organizacion activa. Las consultas de cuentas, historicos, publicaciones, reportes, integraciones y actividad exigen ese identificador. Las membresias determinan que organizaciones puede seleccionar cada usuario.
 
-## Restricciones implementadas
+## Cifrado y hashes
 
-- No guardar contrasenas de redes sociales.
-- Tokens de API cifrados.
-- Historicos preservados por periodo.
-- Evitar duplicidad usando identificadores externos por red social y cuenta.
-- Registrar fecha de ultima sincronizacion.
-- Eliminar sesiones relacionadas al eliminar un usuario.
-- Aplicar unicidad a correo, plataforma e identificadores externos.
+- Contrasenas, tokens de sesion, tokens de cuenta y codigos de recuperacion se almacenan como hashes cuando no necesitan recuperarse.
+- Tokens OAuth, secretos TOTP, secretos de integracion y verificadores PKCE se cifran porque deben volver a utilizarse.
+- El frontend nunca recibe los valores cifrados ni los secretos originales.
 
-Los resultados de auditoria y recomendaciones se guardan actualmente dentro del contenido JSON de cada reporte. Su normalizacion en tablas propias queda prevista para una fase posterior.
+## Restricciones
+
+- Unicidad de correo y membresia.
+- Unicidad de cuentas externas y puntos historicos.
+- Escrituras idempotentes para evitar duplicados durante sincronizaciones.
+- Arrendamientos con propietario y vencimiento para reclamar tareas programadas.
+- Borrado relacionado mediante claves foraneas cuando corresponde.
+
+## Limite actual
+
+SQLite es la base de la edicion local y de una unica instancia. No debe compartirse su archivo entre varios servidores. La siguiente fase de produccion debe portar las consultas y migraciones a PostgreSQL o equivalente administrado.
