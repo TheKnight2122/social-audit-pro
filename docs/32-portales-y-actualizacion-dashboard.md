@@ -2,7 +2,7 @@
 
 ## Decisiones recibidas
 
-Se solicita prueba online con datos reales y posterior uso diario, sin presupuesto de alojamiento; actualizacion al entrar al dashboard; todas las redes administradas por el administrador; correo empresarial existente; acceso de clientes con un resumen sencillo. No se recibieron proveedor/dominio de correo, credenciales, numero de usuarios ni fecha. Se propone mantener la separacion existente por organizacion; queda pendiente confirmar si se necesita ademas asignacion por usuario dentro de cada empresa.
+Se confirma prueba online sin presupuesto de alojamiento, con pausas por inactividad aceptadas; actualizacion al entrar al dashboard; redes administradas por el administrador y APIs de pago desactivadas. El correo es Microsoft 365 y lo administra el jefe de la empresa. Cada empresa solo vera cuentas designadas por el administrador, mediante la organizacion correspondiente. El volumen inicial no esta definido y se espera crecimiento gradual; las pruebas se solicitan lo antes posible. Faltan buzon remitente, autorizacion de aplicacion y accesos a servicios. No se solicito separar usuarios de la misma empresa entre si.
 
 ## Accesos
 
@@ -25,7 +25,7 @@ No se modificaron los horarios existentes: un administrador puede pausarlos desd
 
 ## Despliegue y limites
 
-El alojamiento gratuito sigue pendiente. Para el esquema propuesto faltan PostgreSQL, configurar proveedor de correo, credenciales/aprobaciones sociales y validacion productiva. El correo corporativo por si solo no autoriza el envio desde la aplicacion; se debe confirmar proveedor y metodo de autenticacion.
+El alojamiento gratuito sigue pendiente. Para el esquema propuesto faltan PostgreSQL, activar el transporte Microsoft 365 preparado en v0.5.5, credenciales/aprobaciones sociales y validacion productiva. El correo corporativo por si solo no autoriza el envio desde la aplicacion; el jefe debe autorizar el acceso al buzon designado.
 
 No se crearon cuentas externas ni se contrataron servicios. Presupuesto cero no garantiza disponibilidad continua, ni implica que todas las APIs sociales sean gratuitas. X requiere revisar su coste y autorizacion antes de activarlo. No se promete alta disponibilidad ni migracion automatica entre PC y nube.
 

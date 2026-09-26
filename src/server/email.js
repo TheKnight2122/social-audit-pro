@@ -1,4 +1,12 @@
 import nodemailer from "nodemailer";
+import { createMicrosoftMailTransport } from "./microsoft-mail.js";
+
+export function emailTransportFromEnvironment() {
+  const provider = process.env.EMAIL_PROVIDER || "smtp";
+  if (provider === "microsoft365") return createMicrosoftMailTransport();
+  if (provider === "smtp") return smtpTransportFromEnvironment();
+  return null;
+}
 
 function smtpTransportFromEnvironment() {
   if (!process.env.SMTP_HOST) return null;
@@ -14,7 +22,7 @@ function smtpTransportFromEnvironment() {
 
 export function createEmailService({
   database,
-  transport = smtpTransportFromEnvironment(),
+  transport = emailTransportFromEnvironment(),
   from = process.env.EMAIL_FROM || "Social Audit Pro <no-reply@localhost>",
   environment = process.env.NODE_ENV || "development"
 }) {
@@ -31,7 +39,7 @@ export function createEmailService({
       const outboxId = Number(queued.lastInsertRowid);
 
       if (!transport) {
-        return { delivered: false, outboxId, reason: "smtp_not_configured" };
+        return { delivered: false, outboxId, reason: "email_not_configured" };
       }
 
       try {
@@ -43,13 +51,13 @@ export function createEmailService({
            WHERE id = ?`
         ).run(outboxId);
         return { delivered: true, outboxId };
-      } catch (error) {
+      } catch {
         database.prepare(
           `UPDATE email_outbox
            SET status = 'failed', attempts = attempts + 1, last_error = ?,
                updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`
-        ).run(String(error.message || error).slice(0, 500), outboxId);
+        ).run("El proveedor no confirmo la aceptacion del correo.", outboxId);
         return { delivered: false, outboxId, reason: "delivery_failed" };
       }
     }

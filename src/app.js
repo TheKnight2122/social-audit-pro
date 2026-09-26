@@ -713,12 +713,15 @@ function renderIntegrationsPage() {
   const cards = sampleData.integrations.map(function (integration) {
     const slug = integration.platform === "X" ? "x" : integration.platform.toLowerCase();
     const real = persisted.find(function (item) { return item.platform === slug; });
+    const costBlocked = real?.disabledReason === "cost_not_approved";
     const connected = Boolean(real?.connectionId && real.status === "connected");
     const configured = real && real.status !== "not_configured";
-    const status = connected ? "Conectada" : configured ? real.status : "Sin configurar";
+    const status = costBlocked ? "Desactivada por presupuesto" : connected ? "Conectada" : configured ? real.status : "Sin configurar";
     let action = "";
     if (state.user) {
-      if (connected && can("sync:run")) {
+      if (costBlocked) {
+        action = '<span>API de pago pendiente de autorizacion</span>';
+      } else if (connected && can("sync:run")) {
         action = '<button class="secondary-button integration-action" data-sync-platform="' + escapeHtml(slug) + '" type="button">Sincronizar ahora</button>';
       } else if (real?.oauthAvailable && can("integrations:write")) {
         action = '<button class="primary-button integration-action" data-oauth-platform="' + escapeHtml(slug) + '" type="button">Conectar cuenta</button>';
@@ -726,10 +729,10 @@ function renderIntegrationsPage() {
         action = '<button class="secondary-button integration-action" type="button" disabled>Falta configurar OAuth</button>';
       }
     }
-    const schedule = connected && can("sync:run")
+    const schedule = connected && !costBlocked && can("sync:run")
       ? '<form class="sync-schedule" data-schedule-platform="' + escapeHtml(slug) + '"><label><input name="enabled" type="checkbox"' + (real.scheduleEnabled ? " checked" : "") + ' /> Sincronizacion automatica</label><select name="intervalMinutes" aria-label="Frecuencia de sincronizacion"><option value="60"' + (real.scheduleIntervalMinutes === 60 ? " selected" : "") + '>Cada hora</option><option value="360"' + (real.scheduleIntervalMinutes === 360 ? " selected" : "") + '>Cada 6 horas</option><option value="720"' + (real.scheduleIntervalMinutes === 720 ? " selected" : "") + '>Cada 12 horas</option><option value="1440"' + (real.scheduleIntervalMinutes === 1440 ? " selected" : "") + '>Cada dia</option></select><button class="secondary-button" type="submit">Guardar</button></form>'
       : "";
-    const nextSync = real?.nextSyncAt ? "Proxima automatica: " + escapeHtml(real.nextSyncAt) : "Sin proxima ejecucion";
+    const nextSync = costBlocked ? "Consultas bloqueadas por presupuesto" : real?.nextSyncAt ? "Proxima automatica: " + escapeHtml(real.nextSyncAt) : "Sin proxima ejecucion";
     return '<article class="integration-card"><div class="integration-top"><span class="platform-mark">' + escapeHtml(integration.platform.slice(0, 2).toUpperCase()) + '</span><div><h2>' + escapeHtml(integration.platform) + "</h2><p>" + escapeHtml(integration.provider) + '</p></div><span class="connection-status ' + (connected ? "active" : configured ? "demo" : "pending") + '">' + escapeHtml(status) + '</span></div><div class="integration-account"><span>Cuenta autorizada</span><strong>' + (connected ? escapeHtml(real.connectedAccount) : "Sin cuenta conectada") + '</strong></div><div class="tag-list">' + integration.metrics.map(function (metric) { return "<span>" + escapeHtml(metric) + "</span>"; }).join("") + '</div>' + schedule + '<div class="integration-footer"><small>' + (real && real.lastSyncAt ? "Ultima sincronizacion: " + escapeHtml(real.lastSyncAt) + " · " + nextSync : "Sin sincronizacion oficial") + "</small>" + action + "</div></article>";
   }).join("");
   const oauthNotice = state.oauthNotice

@@ -28,7 +28,7 @@
 
 ## Correo
 
-En desarrollo, los mensajes se registran en una bandeja persistente sin guardar el token sin cifrar. En un despliegue real se debe configurar SMTP mediante variables de entorno, usar dominio verificado y controlar rebotes y abuso.
+En desarrollo, los mensajes se registran en una bandeja persistente sin guardar el token sin cifrar. En un despliegue real se debe configurar SMTP o Microsoft 365 Graph mediante variables privadas. Desde v0.5.5 no se almacenan errores originales del proveedor de correo. Graph tiene destinos HTTPS fijos, no sigue redirecciones, limita tiempos y no reintenta envios automaticamente. El buzon emisor esta fijado en el servidor. El permiso de aplicacion debe limitarse al buzon mediante Exchange RBAC; no conceder acceso global innecesario. Sigue pendiente controlar rebotes y abuso en produccion.
 
 ## Riesgos conocidos
 

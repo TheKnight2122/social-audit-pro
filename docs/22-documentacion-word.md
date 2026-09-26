@@ -1,5 +1,7 @@
 # Documentacion Word
 
+La revision v0.5.5 registra Microsoft 365 preparado, X bloqueado por presupuesto, 76 pruebas y decisiones confirmadas para un piloto gratuito con pausas. El envio real y el despliegue siguen pendientes.
+
 La revision v0.5.4 agrega el portal cliente, dos accesos visuales y refresco bajo demanda con 66 pruebas y capturas de fixtures. Actualiza el manual y el informe semanal sin declarar un despliegue productivo.
 
 ## Proposito

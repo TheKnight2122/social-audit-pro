@@ -14,6 +14,8 @@ La version actual incluye:
 - Dos accesos visuales con autenticacion compartida; portal cliente con resumen y tabla de impacto, sin datos demo para clientes autenticados.
 - Refresco al entrar al dashboard con sesion y CSRF, intervalo persistente de 15 minutos y bloqueo compartido. No desactiva horarios existentes ni despliega backend online.
 - API REST con Node.js y Express bajo `/api/v1`.
+- Transporte Microsoft 365 Graph preparado, pendiente de autorizacion del jefe y envio real. SMTP sigue disponible; no almacenar errores originales de correo.
+- X bloqueado por defecto, incluso con credenciales; habilitar solo tras aprobacion de costes con `X_API_ENABLED=true`.
 - Persistencia local con SQLite y `better-sqlite3`.
 - Registro inicial, inicio y cierre de sesion, verificacion de correo, recuperacion, MFA, proteccion CSRF y permisos por rol.
 - Organizaciones, membresias y aislamiento de datos por organizacion activa.
@@ -118,6 +120,7 @@ Leer primero:
 - `docs/22-documentacion-word.md`
 - `docs/23-informes-semanales.md`
 - `docs/32-portales-y-actualizacion-dashboard.md`
+- `docs/33-piloto-microsoft365-y-presupuesto.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `CHANGELOG.md`

@@ -16,7 +16,7 @@
 
 ## Fase actual - Activacion controlada
 
-1. Registrar aplicaciones de Meta, TikTok, LinkedIn y X.
+1. Registrar aplicaciones de las redes sin pago aprobado; X permanece desactivado por presupuesto desde v0.5.5.
 2. Solicitar los productos, permisos y revisiones necesarios.
 3. Cargar credenciales mediante variables del servidor.
 4. Validar autorizacion, sincronizacion, renovacion y revocacion con cuentas de prueba.
@@ -24,7 +24,7 @@
 
 ## Siguiente fase - Produccion
 
-1. Elegir host, PostgreSQL administrado, SMTP y gestor de secretos.
+1. Configurar cuentas de piloto gratuito, PostgreSQL administrado, autorizacion Microsoft 365 y secretos privados. Las pausas fueron aceptadas; no equivale a disponibilidad productiva garantizada.
 2. Portar persistencia y migraciones desde SQLite.
 3. Automatizar despliegues y transferencia externa/retencion de copias; probar recuperacion productiva.
 4. Separar API y trabajador con una cola compartida.

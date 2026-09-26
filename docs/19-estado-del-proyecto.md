@@ -2,6 +2,8 @@
 
 ## Resumen ejecutivo
 
+Avance v0.5.5: transporte Microsoft 365 preparado y probado con respuestas simuladas, X bloqueado por presupuesto, 76 pruebas aprobadas. El usuario confirma piloto gratuito con pausas, aislamiento por empresa y crecimiento gradual. Faltan autorizacion del correo, credenciales sociales, base compartida y despliegue. No se ha enviado correo real ni se ha contratado alojamiento en este avance.
+
 Social Audit Pro es un MVP avanzado local con backend, persistencia, identidad, organizaciones, analitica, PDF, conectores OAuth y sincronizacion automatica. La demostracion publica sigue siendo estatica y segura para presentacion. El producto todavia no es un servicio SaaS desplegado ni una plataforma de alta disponibilidad.
 
 ## Completado

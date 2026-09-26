@@ -1,5 +1,7 @@
 # Informes semanales
 
+El avance 016 de la misma semana agrega las respuestas recibidas, transporte Microsoft 365, bloqueo de API de pago, 76 pruebas y captura de X desactivado. No se registra activacion externa ni alojamiento contratado.
+
 El avance 015 de la semana del 21 al 27 registra las decisiones recibidas, el portal cliente y el refresco al entrar, 66 pruebas y validacion visual con datos simulados. No registra contrataciones ni activaciones externas.
 
 ## Proposito

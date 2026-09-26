@@ -127,7 +127,9 @@ En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues
 
 ## Estado actual
 
-Version `v0.5.4` en desarrollo: incorpora accesos para administradores y clientes, un resumen de impacto para clientes y actualizacion al entrar al dashboard con proteccion de cuota. Mantiene la concurrencia, aislamiento, copias y controles anteriores. YouTube conserva la validacion mas madura. Los demas conectores necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman. Ver `docs/32-portales-y-actualizacion-dashboard.md`.
+Ultimo avance: `v0.5.5`. Microsoft 365 preparado mediante Graph HTTPS, pendiente de autorizacion externa. X queda bloqueado por defecto por presupuesto. Se mantienen las funciones de v0.5.4. Ver `docs/33-piloto-microsoft365-y-presupuesto.md`.
+
+La base `v0.5.4` incorpora accesos para administradores y clientes, un resumen de impacto para clientes y actualizacion al entrar al dashboard con proteccion de cuota. Mantiene la concurrencia, aislamiento, copias y controles anteriores. YouTube conserva la validacion mas madura. Los demas conectores necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman. Ver `docs/32-portales-y-actualizacion-dashboard.md`.
 
 ## Funcionalidades terminadas
 

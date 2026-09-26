@@ -49,6 +49,7 @@ export function createProviderRegistry({
       fetchImpl
     }),
     x: createXProvider({
+      enabled: process.env.X_API_ENABLED === "true",
       clientId: process.env.X_CLIENT_ID,
       clientSecret: process.env.X_CLIENT_SECRET,
       redirectUri: callbackUrl(appBaseUrl, "x", process.env.X_OAUTH_REDIRECT_URI),

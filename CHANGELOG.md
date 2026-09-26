@@ -4,6 +4,23 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.5] - 2026-09-26
+
+### Added
+
+- Transporte Microsoft 365 mediante Graph HTTPS y client credentials, sin contrasena del buzon.
+- Cache temporal de token, consultas con tiempo limitado, remitente fijo y errores de correo sin contenido sensible.
+- X bloqueado por defecto en OAuth, sincronizacion y trabajador aunque existan credenciales; `X_API_ENABLED=true` requiere autorizacion previa de costes.
+- Estado visible de bloqueo por presupuesto y diez pruebas nuevas; 76 pruebas aprobadas.
+- Guia del piloto, responsabilidades del administrador, capturas y actualizacion de manual e informe Word.
+
+### Limitations
+
+- Microsoft 365 esta preparado y probado con respuestas simuladas; falta registrar/autorizar la aplicacion y verificar envio real.
+- HTTP 202 de Graph indica aceptacion, no entrega garantizada al destinatario. No hay reintento automatico de envio.
+- No se contrataron servicios ni se desplegaron backend o PostgreSQL. Se aceptan pausas para un futuro piloto gratuito.
+- La asignacion actual consiste en conectar cada cuenta dentro de su organizacion. No incluye compartir una cuenta entre empresas ni restricciones por usuario dentro de una empresa.
+
 ## [v0.5.4] - 2026-09-26
 
 ### Added

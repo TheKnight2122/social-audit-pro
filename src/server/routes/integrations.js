@@ -60,6 +60,7 @@ export function createIntegrationsRouter({
         ...integration,
         status: connection?.status || integration.status,
         oauthAvailable: Boolean(providerFor(integration.platform)?.configured),
+        disabledReason: providerFor(integration.platform)?.disabledReason || null,
         connectionId: connection?.id || null,
         connectedAccount: connection?.displayName || null,
         lastSyncAt: connection?.lastSyncAt || integration.lastSyncAt,

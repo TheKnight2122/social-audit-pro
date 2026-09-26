@@ -24,15 +24,20 @@ function tokenPayload(payload, previous = {}) {
 }
 
 export function createXProvider({
+  enabled = false,
   clientId,
   clientSecret,
   redirectUri,
   fetchImpl = globalThis.fetch,
   apiBaseUrl = "https://api.x.com"
 }) {
-  const configured = Boolean(clientId && clientSecret && redirectUri);
+  const configured = enabled === true && Boolean(clientId && clientSecret && redirectUri);
+  function requireEnabled() {
+    if (!configured) throw new Error("X esta desactivado o no configurado. Requiere aprobacion de costes.");
+  }
 
   async function tokenRequest(body) {
+    requireEnabled();
     return requestJson(fetchImpl, apiBaseUrl + "/2/oauth2/token", {
       method: "POST",
       headers: {
@@ -55,6 +60,7 @@ export function createXProvider({
 
   return {
     slug: "x",
+    disabledReason: enabled === true ? null : "cost_not_approved",
     configured,
     pkce: true,
     getAuthorizationUrl(state, { codeChallenge } = {}) {
@@ -80,6 +86,7 @@ export function createXProvider({
       return tokenPayload(payload);
     },
     async fetchData(inputTokens) {
+      requireEnabled();
       const tokens = await refresh(inputTokens);
       const userPayload = await requestJson(
         fetchImpl,

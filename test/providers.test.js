@@ -52,7 +52,7 @@ test("normaliza perfil y publicaciones de X con OAuth 2 PKCE", async () => {
     if (url.includes("/users/me")) return response({ data: { id: "x-1", name: "X Demo", username: "xdemo", public_metrics: { followers_count: 40, following_count: 5, tweet_count: 10 } } });
     return response({ data: [{ id: "tweet-1", text: "Publicacion", created_at: "2026-09-25T10:00:00Z", public_metrics: { impression_count: 200, like_count: 12, reply_count: 2, retweet_count: 3 } }] });
   };
-  const provider = createXProvider({ clientId: "client", clientSecret: "secret", redirectUri: "https://app.test/callback", apiBaseUrl: "https://api.x.test", fetchImpl });
+  const provider = createXProvider({ enabled: true, clientId: "client", clientSecret: "secret", redirectUri: "https://app.test/callback", apiBaseUrl: "https://api.x.test", fetchImpl });
   assert.equal(new URL(provider.getAuthorizationUrl("state", { codeChallenge: "pkce" })).searchParams.get("scope"), "tweet.read users.read offline.access");
   const data = await provider.fetchData(await provider.exchangeCode("code", { codeVerifier: "verifier" }));
   assert.equal(data.account.handle, "@xdemo");

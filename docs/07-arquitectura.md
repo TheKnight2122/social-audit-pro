@@ -30,6 +30,8 @@ flowchart LR
 
 ## Capas
 
+En v0.5.5, `email.js` selecciona SMTP o el transporte HTTPS `microsoft-mail.js`. Microsoft 365 usa una aplicacion del tenant y un buzon remitente fijo; el token solo se mantiene en memoria. X requiere habilitacion expresa mediante `X_API_ENABLED=true`, ademas de credenciales, tras aprobar costes.
+
 Desde v0.5.4, el portal cliente es una presentacion simplificada por rol sobre la misma identidad y organizacion. POST `/analytics/dashboard/refresh` reutiliza el ejecutor con permiso de lectura, contexto de sesion, CSRF y limite persistente por conexion; no concede permisos de configuracion. Los portales no duplican las bases de usuarios.
 
 - Presentacion: `index.html`, `src/app.js` y `src/styles.css`.
