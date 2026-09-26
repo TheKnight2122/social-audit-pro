@@ -10,6 +10,7 @@
 - Endpoints de vida y disponibilidad.
 - Apagado ordenado de HTTP, trabajador y base.
 - Frontend estatico separable del backend.
+- Copias SQLite online cifradas, verificables y programables; restauracion a ruta nueva probada con datos desechables.
 
 ## Lo que todavia impide multiples servidores
 
@@ -46,7 +47,9 @@ flowchart LR
 2. Ejecutar migraciones en CI/CD antes de cambiar replicas.
 3. Mover sincronizaciones a una cola con reintentos e idempotencia.
 4. Anadir almacenamiento de objetos para exportaciones si se conservan.
-5. Configurar copias, restauracion, monitoreo y alertas.
+5. Configurar destino externo y retencion de copias, monitoreo y alertas; probar restauracion en produccion.
 6. Probar fallos de instancia, perdida de red y recuperacion de base.
 
 Hasta completar estos pasos, el despliegue recomendado es una unica instancia con volumen persistente y copias frecuentes.
+
+La guia `29-copias-y-restauracion.md` describe los comandos y controles incorporados en v0.5.1. No equivale a recuperacion ante la perdida completa del host sin una copia externa y claves custodiadas fuera del servidor.

@@ -41,6 +41,7 @@ Incluye auditoria, analitica, monitoreo, insights, recomendaciones, reportes, ge
 - Conectores OAuth para YouTube, Instagram, Facebook, TikTok, LinkedIn y X, sujetos a credenciales y aprobaciones de cada proveedor.
 - Sincronizacion manual y programada con arrendamientos para impedir que dos trabajadores procesen la misma tarea.
 - Importacion normalizada de cuentas, publicaciones e historicos.
+- Copias SQLite cifradas, verificadas y restauracion controlada sin sobrescritura.
 
 ## Tecnologias utilizadas
 
@@ -126,7 +127,7 @@ En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues
 
 ## Estado actual
 
-Version `v0.5.0` en desarrollo: la plataforma incluye seguridad de cuenta, organizaciones, sincronizacion automatica y adaptadores OAuth para las seis redes. YouTube conserva la validacion mas madura. Los demas conectores estan implementados y probados con respuestas simuladas, pero necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman.
+Version `v0.5.1` en desarrollo: incluye copias cifradas y recuperacion controlada, ademas de seguridad de cuenta, organizaciones, sincronizacion automatica y adaptadores OAuth para las seis redes. YouTube conserva la validacion mas madura. Los demas conectores estan implementados y probados con respuestas simuladas, pero necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman.
 
 ## Funcionalidades terminadas
 
@@ -148,7 +149,20 @@ Version `v0.5.0` en desarrollo: la plataforma incluye seguridad de cuenta, organ
 - Dashboard, auditoria, metricas, contenido y reportes alimentados por datos oficiales cuando existe una cuenta conectada.
 - Reporte ejecutivo descargable en PDF.
 - Imagen Docker, Compose de referencia, validaciones de produccion, apagado ordenado y endpoints de vida/disponibilidad.
-- Veinticinco pruebas automatizadas exitosas.
+- Copias online cifradas, verificadas y programables; restauracion a un archivo nuevo con sesiones invalidadas y sincronizaciones pausadas.
+- Treinta y cuatro pruebas automatizadas exitosas.
+
+## Copias y recuperacion
+
+Configurar `BACKUP_ENCRYPTION_KEY` con una clave propia de 64 caracteres hexadecimales y custodiarla fuera del servidor. No compartirla ni guardarla en Git. La copia necesita tambien conservar por separado la clave original de OAuth/MFA para la futura recuperacion.
+
+```bash
+npm run db:backup
+npm run db:verify -- "backups/CARPETA-DE-LA-COPIA"
+npm run db:restore -- "backups/CARPETA-DE-LA-COPIA" "data/recuperada.sqlite"
+```
+
+La restauracion no sustituye la base activa. Las copias periodicas estan desactivadas por defecto; `BACKUP_INTERVAL_HOURS=24` las habilita al reiniciar. No hay retencion automatica ni almacenamiento externo incluido. Ver `docs/29-copias-y-restauracion.md` antes de activar o restaurar.
 
 ## Funcionalidades pendientes
 
@@ -180,6 +194,7 @@ Documentos clave:
 - `docs/26-seguridad-de-cuentas.md`
 - `docs/27-conectores-oficiales.md`
 - `docs/28-produccion-y-alta-disponibilidad.md`
+- `docs/29-copias-y-restauracion.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `docs/semanales/`
@@ -193,3 +208,4 @@ Documentos clave:
 - `v0.3.0` - Backend, persistencia, autenticacion, roles, integraciones configurables y PDF.
 - `v0.4.0` - Primer conector OAuth oficial completo para YouTube y dashboard con datos reales por usuario.
 - `v0.5.0` - Organizaciones, seguridad de cuenta, sincronizacion automatica, conectores multired y base de despliegue.
+- `v0.5.1` - Copias cifradas verificables y restauracion controlada de SQLite.

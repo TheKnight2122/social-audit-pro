@@ -4,6 +4,27 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.1] - 2026-09-25
+
+### Added
+
+- Copias online SQLite cifradas con AES-256-GCM y verificacion de integridad.
+- Comandos `db:backup`, `db:verify` y `db:restore` sin sobrescritura.
+- Copias periodicas opcionales y espera de la operacion activa durante el apagado.
+- Guia de recuperacion, pruebas de respaldo y actualizacion documental Word.
+
+### Security
+
+- Clave de respaldo independiente, manifiesto autenticado y archivos privados.
+- Restauracion invalida sesiones, enlaces temporales, estados OAuth y codigos de recuperacion antiguos.
+- Las sincronizaciones quedan pausadas hasta revision tras recuperar una base.
+
+### Limitations
+
+- Copias desactivadas hasta configurar una clave privada; no se modifico `.env`.
+- Pendientes almacenamiento externo, retencion, alertas y simulacros productivos.
+- No sustituye la migracion a PostgreSQL ni completa la alta disponibilidad.
+
 ## [v0.5.0] - 2026-09-25
 
 ### Added

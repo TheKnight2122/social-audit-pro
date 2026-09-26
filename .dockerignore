@@ -8,6 +8,8 @@
 work
 outputs
 data
+backups
+database.enc
 dist
 node_modules
 npm-debug.log

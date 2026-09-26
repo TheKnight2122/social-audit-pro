@@ -3,6 +3,7 @@ import { createApp } from "./src/server/app.js";
 import { openDatabase } from "./src/server/database.js";
 import { createProviderRegistry } from "./src/server/integrations/providers.js";
 import { createSyncWorker } from "./src/server/sync-worker.js";
+import { createBackupWorker } from "./src/server/backup-worker.js";
 
 function validateProductionEnvironment() {
   if (process.env.NODE_ENV !== "production") return;
@@ -21,6 +22,7 @@ validateProductionEnvironment();
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || "127.0.0.1";
 const database = openDatabase();
+const backupWorker = createBackupWorker({ database });
 const providers = createProviderRegistry();
 let ready = true;
 const app = createApp({
@@ -44,6 +46,7 @@ const server = app.listen(port, host, async (error) => {
     return;
   }
   if (process.env.SYNC_WORKER_ENABLED !== "false") syncWorker.start();
+  backupWorker.start();
   console.log("Social Audit Pro disponible en http://" + host + ":" + port);
 });
 server.keepAliveTimeout = Number(process.env.KEEP_ALIVE_TIMEOUT_MS || 65000);
@@ -53,7 +56,7 @@ function shutdown(signal) {
   if (!ready) return;
   console.log("\nCerrando servidor por " + signal + "...");
   ready = false;
-  const workerStopped = syncWorker.stop();
+  const workerStopped = Promise.all([syncWorker.stop(), backupWorker.stop()]);
   server.close(async () => {
     await workerStopped;
     database.close();

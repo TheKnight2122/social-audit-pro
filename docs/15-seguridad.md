@@ -19,6 +19,8 @@
 - Ningun secreto real se incluye en el repositorio ni en GitHub Pages.
 - El servidor solo sirve los cinco archivos del frontend; base de datos, configuracion y codigo interno responden 404.
 - Las respuestas API usan `Cache-Control: no-store`.
+- Copias completas cifradas y autenticadas con clave independiente; verificacion antes de declarar exito.
+- Restauracion a ruta nueva, sin sobrescritura, con sesiones/enlaces/codigos de recuperacion invalidados y sincronizaciones pausadas.
 
 ## Correo
 
@@ -30,6 +32,8 @@ En desarrollo, los mensajes se registran en una bandeja persistente sin guardar 
 - SQLite es adecuado para desarrollo y una instancia, pero no para varios servidores escribiendo el mismo archivo.
 - Falta un gestor externo de secretos, rotacion automatica, monitoreo centralizado y respuesta a incidentes.
 - No se ha realizado auditoria externa, prueba de penetracion ni prueba de carga.
+- La copia recupera contrasenas, roles y permisos del momento del respaldo: revisar cambios posteriores antes de reabrir el servicio.
+- Los temporales se limpian en salidas controladas; un cierre forzado puede dejar instantaneas locales. Proteger ACL, disco y claves, y seguir `docs/29-copias-y-restauracion.md`.
 - MFA protege cuentas de la aplicacion, pero no sustituye la seguridad de las cuentas sociales conectadas.
 
 ## Antes de produccion

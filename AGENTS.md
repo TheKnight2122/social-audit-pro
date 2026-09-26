@@ -19,6 +19,7 @@ La version actual incluye:
 - Configuracion sensible de integraciones cifrada en reposo.
 - Conectores implementados para YouTube, Instagram, Facebook, TikTok, LinkedIn y X.
 - Sincronizacion manual y programada mediante trabajador con arrendamientos.
+- Copias SQLite cifradas y verificadas; restauracion a ruta nueva con sesiones invalidadas y tareas pausadas.
 - Generacion y descarga de reportes PDF mediante PDFKit.
 - Demostracion estatica publicada automaticamente en GitHub Pages.
 - Pruebas automatizadas para analitica, API, autenticacion, roles y persistencia.
@@ -48,6 +49,7 @@ La demostracion publica es estatica. No debe almacenar usuarios, credenciales, s
 - `src/server/`: API, autenticacion, permisos, seguridad, persistencia y PDF.
 - `src/server/integrations/`: adaptadores OAuth y normalizacion por plataforma.
 - `src/server/sync-worker.js`: ejecucion programada con arrendamientos.
+- `src/server/backups.js` y `backup-worker.js`: respaldo cifrado, verificacion, restauracion y programacion opcional.
 - `migrations/`: esquema y migraciones de SQLite.
 - `test/`: pruebas unitarias y de integracion.
 - `docs/`: requisitos, arquitectura, seguridad, manuales, decisiones y roadmap.
@@ -59,6 +61,7 @@ npm install
 npm start
 npm test
 npm run build
+npm run db:backup
 ```
 
 ## Reglas de mantenimiento
@@ -69,6 +72,7 @@ npm run build
 - Reutilizar los patrones y variables definidos en `src/styles.css`.
 - Mantener la interfaz profesional, clara, colorida y adaptable a movil.
 - No incluir nombres personales, credenciales, tokens ni archivos `.env` en el repositorio.
+- No versionar copias, claves ni instantaneas. Restaurar solo a una ruta nueva y revisar `docs/29-copias-y-restauracion.md`.
 - No simular como real una integracion que todavia no consulta una API oficial.
 - Documentar formulas, supuestos y limitaciones de las metricas.
 - Mantener la version publica libre de llamadas al backend local.

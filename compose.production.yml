@@ -10,6 +10,9 @@ services:
       PORT: 4173
       APP_BASE_URL: ${APP_BASE_URL}
       DATABASE_PATH: /app/data/social-audit-pro.sqlite
+      BACKUP_DIRECTORY: /app/backups
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-0}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
       TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -46,6 +49,8 @@ services:
       X_API_BASE_URL: ${X_API_BASE_URL:-https://api.x.com}
     volumes:
       - social_audit_data:/app/data
+      - social_audit_backups:/app/backups
 
 volumes:
   social_audit_data:
+  social_audit_backups:

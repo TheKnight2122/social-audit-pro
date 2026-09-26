@@ -2,7 +2,7 @@
 
 ## Estado
 
-Arquitectura modular por capas implementada para frontend, API, identidad, organizaciones, persistencia, analitica, reportes, conectores y sincronizacion. La version v0.5.0 mantiene SQLite para instalacion local y una demostracion estatica independiente para GitHub Pages.
+Arquitectura modular por capas implementada para frontend, API, identidad, organizaciones, persistencia, analitica, reportes, conectores y sincronizacion. La version v0.5.1 mantiene SQLite para instalacion local y una demostracion estatica independiente para GitHub Pages; agrega respaldo cifrado y recuperacion controlada.
 
 ## Vista general
 
@@ -39,6 +39,7 @@ flowchart LR
 - Persistencia: SQLite, migraciones SQL y cifrado de secretos.
 - Procesamiento: `src/server/sync-worker.js` reclama tareas vencidas mediante un arrendamiento atomico.
 - Reportes: almacenamiento de informes y generacion PDF.
+- Recuperacion: `backups.js` usa backup online, AES-GCM y validacion SQLite; `backup-worker.js` programa copias opcionales. La CLI no expone respaldos por HTTP.
 
 ## Flujo oficial de datos
 

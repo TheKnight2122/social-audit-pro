@@ -10,6 +10,7 @@
 - Organizaciones, seguridad de cuenta y sincronizacion automatica.
 - Adaptadores multired y pruebas simuladas de normalizacion.
 - Publicacion estatica automatica y documentacion visual.
+- Copias SQLite cifradas y verificadas con restauracion controlada probada en datos desechables.
 
 ## Fase actual - Activacion controlada
 
@@ -23,7 +24,7 @@
 
 1. Elegir host, PostgreSQL administrado, SMTP y gestor de secretos.
 2. Portar persistencia y migraciones desde SQLite.
-3. Automatizar despliegues, copias y restauraciones.
+3. Automatizar despliegues y transferencia externa/retencion de copias; probar recuperacion productiva.
 4. Separar API y trabajador con una cola compartida.
 5. Incorporar logs estructurados, metricas, trazas y alertas.
 6. Ejecutar pruebas de carga y seguridad.
@@ -33,7 +34,7 @@
 Estado: preparada parcialmente, no completada.
 
 - Completado: sesiones persistentes, limitador persistente, tareas con arrendamiento, endpoints de vida/disponibilidad y apagado ordenado.
-- Pendiente: base compartida, cola compartida, balanceador, multiples replicas, almacenamiento externo, observabilidad y recuperacion ante desastres.
+- Pendiente: base compartida, cola compartida, balanceador, multiples replicas, almacenamiento externo, observabilidad y simulacros productivos de recuperacion ante desastres.
 
 ## Criterio para version estable
 

@@ -25,3 +25,5 @@ El manual debe actualizarse cuando cambien las funciones, la arquitectura, los c
 No se deben incluir nombres personales, contrasenas, tokens, credenciales, sesiones ni datos privados en el documento o en sus capturas.
 
 La revision v0.5.0 agrega al manual principal un suplemento sobre organizaciones, seguridad de cuenta, sincronizacion automatica, conectores multired y preparacion productiva. Tambien incorpora el informe Word de la semana del 21 al 27 de septiembre de 2026.
+
+La revision v0.5.1 anade instrucciones de copia cifrada y recuperacion, evidencia de 34 pruebas y limites operativos. Mantiene el contenido anterior como registro historico y actualiza el informe de la misma semana.

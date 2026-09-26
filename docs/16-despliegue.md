@@ -40,7 +40,11 @@ Docker no estaba instalado en la maquina de desarrollo durante la validacion de 
 - `GET /api/v1/health/ready`: confirma base disponible y servicio listo.
 - `GET /api/v1/health`: alias compatible de disponibilidad.
 
-El servidor deja de declararse listo durante el apagado, detiene el trabajador, cierra HTTP y despues cierra la base.
+El servidor deja de declararse listo durante el apagado, detiene los trabajadores, espera sincronizacion y copia activas, cierra HTTP y despues cierra la base.
+
+## Copias
+
+Compose reserva `/app/backups` en un volumen independiente. Las copias estan desactivadas por defecto. Configurar una clave privada `BACKUP_ENCRYPTION_KEY` y `BACKUP_INTERVAL_HOURS` para habilitarlas. El volumen sigue en el mismo equipo: hace falta transferencia externa, control de espacio y retencion. Ver `docs/29-copias-y-restauracion.md`.
 
 ## Requisitos para produccion real
 

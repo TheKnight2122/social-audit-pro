@@ -38,6 +38,8 @@ Thumbs.db
 logs/
 
 # Base de datos local
+backups/
+database.enc
 data/
 *.sqlite
 *.sqlite-shm
