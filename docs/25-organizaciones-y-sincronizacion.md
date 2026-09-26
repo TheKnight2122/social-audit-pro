@@ -14,12 +14,14 @@ Cada conexion oficial crea una fila en `sync_schedules`. El usuario puede habili
 
 1. Busca una tarea vencida y habilitada.
 2. La reclama atomicamente con `lease_owner` y `lease_expires_at`.
-3. Descifra tokens y consulta el adaptador del proveedor.
-4. Normaliza y persiste datos sin duplicarlos.
+3. Descifra tokens y consulta el adaptador con limite de espera de 120 segundos; renueva el bloqueo mientras espera.
+4. Revalida bloqueo, organizacion, cuenta y, en ejecuciones manuales, sesion y permisos; persiste en la misma transaccion.
 5. Calcula la siguiente ejecucion y libera el arrendamiento.
 6. Ante error, registra el fallo y programa un reintento controlado.
 
-El arrendamiento evita que dos trabajadores procesen la misma fila al mismo tiempo si comparten una base transaccional. La edicion SQLite sigue limitada a una instancia.
+La ruta manual y el trabajador comparten `sync-service.js`. Cada reclamo tiene un propietario aleatorio independiente; no se escribe con un bloqueo vencido ni se libera el de otro propietario. Una ejecucion manual simultanea devuelve 409. Pausar una programacion impide persistir el resultado programado en curso, pero permite futuras ejecuciones manuales.
+
+El timeout descarta resultados tardios; un SDK que ignore cancelacion puede continuar la consulta externa, sin permiso para guardar su resultado. No es garantia de una sola llamada al proveedor ni una cola distribuida. SQLite sigue limitado a una instancia.
 
 ## Variables
 
@@ -29,4 +31,4 @@ El arrendamiento evita que dos trabajadores procesen la misma fila al mismo tiem
 
 ## Pruebas
 
-`test/sync-worker.test.js` crea dos trabajadores y verifica que una tarea se ejecute una sola vez. `test/api.test.js` confirma el aislamiento entre dos organizaciones.
+`sync-worker.test.js`, `sync-safety.test.js` y `tenant-security.test.js` prueban trabajadores, conexiones SQLite independientes, concurrencia HTTP, permisos retirados, revocacion, timeout y aislamiento. Ver `31-validacion-concurrencia-y-carga.md`.

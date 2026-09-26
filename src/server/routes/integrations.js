@@ -4,11 +4,11 @@ import { logActivity } from "../database.js";
 import { requireAuth, requireCsrf, requirePermission } from "../middleware.js";
 import { decryptSecret, encryptSecret, hashToken } from "../security.js";
 import { hasPermission } from "../permissions.js";
+import { hasOrganizationPermission } from "../organizations.js";
+import { claimSync, executeSync } from "../sync-service.js";
 import {
   getOrganizationConnection,
-  markConnectionError,
-  persistOAuthSync,
-  readConnectionTokens
+  persistOAuthSync
 } from "../integrations/oauth-storage.js";
 
 const MAX_IMPORT_ITEMS = 500;
@@ -120,18 +120,21 @@ export function createIntegrationsRouter({
     const provider = providerFor(platform);
     const state = String(request.query.state || "");
     const stateHash = hashToken(state);
-    const oauthState = database.prepare(
-      `SELECT s.user_id AS userId, s.organization_id AS organizationId,
-              s.code_verifier_encrypted AS codeVerifierEncrypted, m.role_slug AS role
-       FROM oauth_states s
-       JOIN users u ON u.id = s.user_id AND u.status = 'active'
-       JOIN organization_members m ON m.user_id = s.user_id
-         AND m.organization_id = s.organization_id AND m.status = 'active'
-       JOIN organizations o ON o.id = s.organization_id AND o.status = 'active'
-       WHERE s.state_hash = ? AND s.platform_slug = ?
-         AND s.expires_at > CURRENT_TIMESTAMP`
-    ).get(stateHash, platform);
-    database.prepare("DELETE FROM oauth_states WHERE state_hash = ?").run(stateHash);
+    const oauthState = database.transaction(() => {
+      const row = database.prepare(
+        `SELECT s.user_id AS userId, s.organization_id AS organizationId,
+                s.code_verifier_encrypted AS codeVerifierEncrypted, m.role_slug AS role
+         FROM oauth_states s
+         JOIN users u ON u.id = s.user_id AND u.status = 'active'
+         JOIN organization_members m ON m.user_id = s.user_id
+           AND m.organization_id = s.organization_id AND m.status = 'active'
+         JOIN organizations o ON o.id = s.organization_id AND o.status = 'active'
+         WHERE s.state_hash = ? AND s.platform_slug = ?
+           AND s.expires_at > CURRENT_TIMESTAMP`
+      ).get(stateHash, platform);
+      database.prepare("DELETE FROM oauth_states WHERE state_hash = ?").run(stateHash);
+      return row;
+    }).immediate();
 
     if (!provider?.configured) return response.redirect(callbackRedirect(platform, "error", "provider_not_configured"));
     if (!oauthState || !hasPermission(oauthState, "integrations:write")) return response.redirect(callbackRedirect(platform, "error", "invalid_state"));
@@ -145,28 +148,41 @@ export function createIntegrationsRouter({
         : undefined;
       const exchangedTokens = await provider.exchangeCode(code, { codeVerifier });
       const data = await provider.fetchData(exchangedTokens);
-      const result = persistOAuthSync({
-        database,
-        encryptionSecret,
-        userId: oauthState.userId,
-        organizationId: oauthState.organizationId,
-        platform,
-        data,
-        tokens: data.tokens
-      });
-      logActivity(database, {
-        userId: oauthState.userId,
-        organizationId: oauthState.organizationId,
-        action: "oauth." + platform + "_connected",
-        entityType: "oauth_connection",
-        entityId: result.connectionId,
-        metadata: { accountId: result.accountId, recordsImported: result.recordsImported },
-        ipAddress: request.ip
-      });
+      const outcome = database.transaction(() => {
+        if (!hasOrganizationPermission(database, oauthState.userId, oauthState.organizationId, "integrations:write")) {
+          return "invalid_state";
+        }
+        const busy = database.prepare(
+          `SELECT 1 FROM oauth_connections c JOIN sync_schedules s ON s.connection_id = c.id
+           WHERE c.organization_id = ? AND c.platform_slug = ? AND c.external_account_id = ?
+             AND s.lease_expires_at > CURRENT_TIMESTAMP`
+        ).get(oauthState.organizationId, platform, data.account.externalId);
+        if (busy) return "sync_in_progress";
+        const result = persistOAuthSync({
+          database,
+          encryptionSecret,
+          userId: oauthState.userId,
+          organizationId: oauthState.organizationId,
+          platform,
+          data,
+          tokens: data.tokens
+        });
+        logActivity(database, {
+          userId: oauthState.userId,
+          organizationId: oauthState.organizationId,
+          action: "oauth." + platform + "_connected",
+          entityType: "oauth_connection",
+          entityId: result.connectionId,
+          metadata: { accountId: result.accountId, recordsImported: result.recordsImported },
+          ipAddress: request.ip
+        });
+        return null;
+      }).immediate();
+      if (outcome) return response.redirect(callbackRedirect(platform, "error", outcome));
       return response.redirect(callbackRedirect(platform, "success"));
     } catch (error) {
       if (!error.statusCode || error.statusCode >= 500) {
-        console.error("No se pudo completar OAuth de " + platform + ":", error.message);
+        console.error(JSON.stringify({ event: "oauth.callback_failed", platform }));
       }
       return response.redirect(callbackRedirect(platform, "error", "provider_error"));
     }
@@ -183,29 +199,14 @@ export function createIntegrationsRouter({
       return response.status(503).json({ error: "provider_not_configured", message: "El proveedor no esta configurado." });
     }
     try {
-      const tokens = readConnectionTokens(connection, encryptionSecret);
-      const data = await provider.fetchData(tokens);
-      const result = persistOAuthSync({
-        database,
-        encryptionSecret,
-        userId: request.user.id,
-        organizationId: request.user.organizationId,
-        platform,
-        data,
-        tokens: data.tokens
-      });
-      logActivity(database, {
-        userId: request.user.id,
-        organizationId: request.user.organizationId,
-        action: "sync." + platform + "_completed",
-        entityType: "oauth_connection",
-        entityId: connection.id,
-        metadata: { recordsImported: result.recordsImported },
-        ipAddress: request.ip
+      const claim = claimSync(database, { connectionId: connection.id, organizationId: request.user.organizationId });
+      if (!claim) return response.status(409).json({ error: "sync_in_progress", message: "La conexion no esta disponible o ya se esta sincronizando." });
+      const result = await executeSync({
+        database, encryptionSecret, claim, provider,
+        actor: { userId: request.user.id, sessionHash: request.session.tokenHash }
       });
       return response.json(result);
     } catch (error) {
-      markConnectionError(database, connection.id, error);
       return next(error);
     }
   });

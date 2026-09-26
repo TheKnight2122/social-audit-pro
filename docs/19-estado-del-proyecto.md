@@ -24,7 +24,8 @@ Social Audit Pro es un MVP avanzado local con backend, persistencia, identidad, 
 - Demostracion estatica desplegada por GitHub Pages.
 - Copias cifradas y verificadas, restauracion sin sobrescritura y programacion opcional.
 - Monitoreo HTTP basico, logs JSON sin datos sensibles y metricas protegidas por clave de operador.
-- 42 pruebas automatizadas aprobadas.
+- Bloqueo comun manual/programado con renovacion, limite temporal y revalidacion antes de guardar.
+- 58 pruebas automatizadas aprobadas; carga local de 500 solicitudes sin errores.
 - Manuales e informes semanales en Word.
 
 ## Implementado pero pendiente de activacion externa
@@ -41,7 +42,7 @@ Social Audit Pro es un MVP avanzado local con backend, persistencia, identidad, 
 - Separar API y trabajadores mediante cola administrada.
 - Configurar balanceo, almacenamiento externo de copias, retencion, centralizacion de metricas/logs, trazas y alertas.
 - Completar revocacion y manejo de cuotas especifico de cada proveedor.
-- Realizar pruebas reales de conectores, carga y seguridad.
+- Realizar pruebas reales de conectores, carga productiva y seguridad externa; la prueba local ya esta incorporada.
 
 ## Limitaciones conocidas
 

@@ -16,6 +16,8 @@
 - Cabeceras CSP, `nosniff`, politica de referencia, limite JSON y ocultamiento de `X-Powered-By`.
 - Validacion de HTTPS y longitud del secreto al iniciar en modo produccion.
 - Registro de actividad de operaciones sensibles.
+- Revalidacion de permisos tras consultas OAuth/sincronizacion; consumo atomico de estado OAuth y escritura condicionada al bloqueo vigente.
+- Sincronizacion manual y automatica comparten bloqueo; resultados tardios, revocados o de otra cuenta no se persisten.
 - Ningun secreto real se incluye en el repositorio ni en GitHub Pages.
 - El servidor solo sirve los cinco archivos del frontend; base de datos, configuracion y codigo interno responden 404.
 - Las respuestas API usan `Cache-Control: no-store`.
@@ -33,7 +35,7 @@ En desarrollo, los mensajes se registran en una bandeja persistente sin guardar 
 - Los conectores distintos de YouTube necesitan validacion real, revision de permisos y manejo de revocaciones especifico de cada proveedor.
 - SQLite es adecuado para desarrollo y una instancia, pero no para varios servidores escribiendo el mismo archivo.
 - Falta un gestor externo de secretos, rotacion automatica, monitoreo centralizado y respuesta a incidentes.
-- No se ha realizado auditoria externa, prueba de penetracion ni prueba de carga.
+- No se ha realizado auditoria externa, penetracion ni carga productiva. Existe carga local desechable y cobertura ampliada de aislamiento/concurrencia; no equivale a certificacion de seguridad.
 - La copia recupera contrasenas, roles y permisos del momento del respaldo: revisar cambios posteriores antes de reabrir el servicio.
 - Los temporales se limpian en salidas controladas; un cierre forzado puede dejar instantaneas locales. Proteger ACL, disco y claves, y seguir `docs/29-copias-y-restauracion.md`.
 - MFA protege cuentas de la aplicacion, pero no sustituye la seguridad de las cuentas sociales conectadas.

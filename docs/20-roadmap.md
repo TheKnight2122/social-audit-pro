@@ -12,6 +12,7 @@
 - Publicacion estatica automatica y documentacion visual.
 - Copias SQLite cifradas y verificadas con restauracion controlada probada en datos desechables.
 - Logs HTTP JSON y metricas de proceso protegidas, con pruebas de privacidad y autenticacion operativa.
+- Concurrencia manual/programada reforzada, pruebas ampliadas de aislamiento y carga HTTP local desechable integrada en CI.
 
 ## Fase actual - Activacion controlada
 
@@ -28,7 +29,7 @@
 3. Automatizar despliegues y transferencia externa/retencion de copias; probar recuperacion productiva.
 4. Separar API y trabajador con una cola compartida.
 5. Centralizar logs y metricas de proceso; incorporar trazas, colector y alertas externas.
-6. Ejecutar pruebas de carga y seguridad.
+6. Ejecutar carga productiva sostenida, inyeccion de fallos y auditoria de seguridad externa; las pruebas locales no sustituyen esta etapa.
 
 ## Alta disponibilidad
 

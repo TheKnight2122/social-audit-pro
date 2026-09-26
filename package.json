@@ -1,12 +1,13 @@
 {
   "name": "social-audit-pro",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Plataforma web para auditoria y analisis profesional de redes sociales.",
   "type": "module",
   "scripts": {
     "build": "node scripts/build-static.js",
     "start": "node server.js",
     "test": "node --test",
+    "test:load": "node scripts/load-smoke.js",
     "db:backup": "node scripts/database-backup.js create",
     "db:verify": "node scripts/database-backup.js verify",
     "db:restore": "node scripts/database-backup.js restore"

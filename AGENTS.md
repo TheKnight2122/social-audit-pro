@@ -19,6 +19,7 @@ La version actual incluye:
 - Configuracion sensible de integraciones cifrada en reposo.
 - Conectores implementados para YouTube, Instagram, Facebook, TikTok, LinkedIn y X.
 - Sincronizacion manual y programada mediante trabajador con arrendamientos.
+- Bloqueo compartido entre sincronizacion manual y automatica, renovacion y descarte de resultados tardios; permisos revalidados antes de guardar.
 - Copias SQLite cifradas y verificadas; restauracion a ruta nueva con sesiones invalidadas y tareas pausadas.
 - Monitoreo HTTP con logs sin datos sensibles y metricas JSON globales protegidas por clave de operador.
 - Generacion y descarga de reportes PDF mediante PDFKit.
@@ -50,6 +51,7 @@ La demostracion publica es estatica. No debe almacenar usuarios, credenciales, s
 - `src/server/`: API, autenticacion, permisos, seguridad, persistencia y PDF.
 - `src/server/integrations/`: adaptadores OAuth y normalizacion por plataforma.
 - `src/server/sync-worker.js`: ejecucion programada con arrendamientos.
+- `src/server/sync-service.js`: reclamo atomico, renovacion, limite temporal y persistencia condicionada al bloqueo vigente.
 - `src/server/backups.js` y `backup-worker.js`: respaldo cifrado, verificacion, restauracion y programacion opcional.
 - `src/server/observability.js`: correlacion HTTP, contadores acotados y acceso operativo independiente de roles de organizacion.
 - `migrations/`: esquema y migraciones de SQLite.
@@ -62,6 +64,7 @@ La demostracion publica es estatica. No debe almacenar usuarios, credenciales, s
 npm install
 npm start
 npm test
+npm run test:load
 npm run build
 npm run db:backup
 ```
@@ -86,7 +89,7 @@ npm run db:backup
 2. Validar cada conector con cuentas reales y completar revocaciones especificas.
 3. Desplegar backend, SMTP y secretos en un proveedor productivo.
 4. Migrar SQLite a PostgreSQL o equivalente antes de multiples servidores.
-5. Incorporar cola compartida, monitoreo centralizado, trazas, alertas, copias externas y pruebas de carga/seguridad.
+5. Incorporar cola compartida, monitoreo centralizado, trazas, alertas, copias externas y pruebas productivas de carga/seguridad. Ya existe una prueba de carga local desechable.
 
 ## Criterios para completar un avance
 

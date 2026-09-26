@@ -18,7 +18,7 @@ export function createAnalyticsRouter({ database }) {
        FROM social_accounts a
        JOIN oauth_connections c ON c.id = a.oauth_connection_id
        JOIN social_platforms p ON p.slug = c.platform_slug
-       WHERE c.organization_id = ? AND c.status = 'connected'
+       WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status = 'connected'
        ORDER BY p.name, a.name`
     ).all(request.user.organizationId);
 
@@ -49,7 +49,7 @@ export function createAnalyticsRouter({ database }) {
            JOIN social_accounts a ON a.id = po.account_id
            JOIN oauth_connections c ON c.id = a.oauth_connection_id
            JOIN social_platforms p ON p.slug = c.platform_slug
-           WHERE c.organization_id = ? AND c.status = 'connected'
+           WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status = 'connected'
            ORDER BY po.published_at DESC LIMIT 500`
         ).all(request.user.organizationId).map((row) => {
           const metrics = JSON.parse(row.metricsJson || "{}");
@@ -84,7 +84,7 @@ export function createAnalyticsRouter({ database }) {
        FROM metric_snapshots m
        JOIN social_accounts a ON a.id = m.account_id
        JOIN oauth_connections c ON c.id = a.oauth_connection_id
-       WHERE c.organization_id = ? AND c.status = 'connected'
+       WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status = 'connected'
          AND m.metric_key = 'analytics_views'
        GROUP BY substr(m.recorded_at, 1, 10)
        ORDER BY day DESC LIMIT 28`
@@ -105,10 +105,11 @@ export function createAnalyticsRouter({ database }) {
     const accounts = database.prepare(
       `SELECT a.id, a.external_id AS externalId, a.name, a.handle,
               p.slug AS platform, p.name AS platformName,
-              i.last_sync_at AS lastSyncAt
+              oi.last_sync_at AS lastSyncAt
        FROM social_accounts a
        JOIN integrations i ON i.id = a.integration_id
        JOIN social_platforms p ON p.slug = i.platform_slug
+       LEFT JOIN organization_integrations oi ON oi.organization_id = a.organization_id AND oi.platform_slug = i.platform_slug
        WHERE a.organization_id = ?
        ORDER BY p.name, a.name`
     ).all(request.user.organizationId);

@@ -7,6 +7,7 @@
 - Contenedor y Compose de una instancia.
 - Sesiones y limitador de acceso persistentes.
 - Tareas programadas con arrendamientos.
+- Arrendamientos compartidos con sincronizacion manual, renovacion y validacion transaccional antes de persistir. Carga local automatizada en CI.
 - Endpoints de vida y disponibilidad.
 - Logs HTTP JSON, correlacion generada por el servidor y metricas JSON protegidas por clave operativa independiente.
 - Apagado ordenado de HTTP, trabajador y base.

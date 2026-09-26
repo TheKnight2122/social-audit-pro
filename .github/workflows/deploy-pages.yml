@@ -33,6 +33,9 @@ jobs:
       - name: Verificar pruebas automatizadas
         run: npm test
 
+      - name: Verificar carga local con datos desechables
+        run: npm run test:load -- 200 8
+
       - name: Generar demostracion estatica
         run: node scripts/build-static.js
 

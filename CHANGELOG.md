@@ -4,6 +4,29 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.3] - 2026-09-26
+
+### Security
+
+- Bloqueo compartido entre sincronizacion manual y automatica, renovable y con propietario unico por ejecucion.
+- Persistencia en transaccion solo con arrendamiento vigente, cuenta esperada y organizacion activa.
+- Revalidacion de sesion y permisos antes de guardar una sincronizacion manual; OAuth consume estado atomicamente y revalida permisos.
+- Descartar resultados tardios tras timeout, pausa programada, revocacion, cambio de permisos o perdida de bloqueo.
+- Errores de sincronizacion persistidos sin mensajes ni tokens originales del proveedor.
+- Dashboard comprueba ambas organizaciones de la asociacion; ultima sincronizacion se obtiene del registro de la organizacion.
+
+### Added
+
+- Dieciseis pruebas adicionales de concurrencia y seguridad entre organizaciones; total de 58 aprobadas.
+- `npm run test:load`: carga HTTP autenticada con SQLite desechable y destino local exclusivo del comando.
+- Carga corta en CI, evidencia JSON local y documentacion tecnica y Word.
+
+### Limitations
+
+- No implementa PostgreSQL, cola externa ni alta disponibilidad. SQLite sigue limitado a una instancia.
+- La carga local no es una prueba de capacidad productiva ni una auditoria externa.
+- El timeout impide escrituras tardias, pero un SDK que ignore cancelacion puede seguir consultando al proveedor.
+
 ## [v0.5.2] - 2026-09-26
 
 ### Added

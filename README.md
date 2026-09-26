@@ -127,7 +127,7 @@ En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues
 
 ## Estado actual
 
-Version `v0.5.2` en desarrollo: incorpora monitoreo HTTP basico, copias cifradas y recuperacion controlada, ademas de seguridad de cuenta, organizaciones, sincronizacion automatica y adaptadores OAuth para las seis redes. YouTube conserva la validacion mas madura. Los demas conectores estan implementados y probados con respuestas simuladas, pero necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman.
+Version `v0.5.3` en desarrollo: refuerza concurrencia y aislamiento, con carga local reproducible, monitoreo HTTP, copias cifradas, seguridad de cuenta, organizaciones, sincronizacion y adaptadores OAuth para las seis redes. YouTube conserva la validacion mas madura. Los demas conectores necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman.
 
 ## Funcionalidades terminadas
 
@@ -151,7 +151,8 @@ Version `v0.5.2` en desarrollo: incorpora monitoreo HTTP basico, copias cifradas
 - Imagen Docker, Compose de referencia, validaciones de produccion, apagado ordenado y endpoints de vida/disponibilidad.
 - Copias online cifradas, verificadas y programables; restauracion a un archivo nuevo con sesiones invalidadas y sincronizaciones pausadas.
 - Logs HTTP sin datos sensibles, identificador de solicitud y metricas de proceso protegidas para el operador.
-- Cuarenta y dos pruebas automatizadas exitosas.
+- Cincuenta y ocho pruebas automatizadas exitosas y prueba de carga local con datos desechables.
+- Sincronizacion manual y automatica con bloqueo compartido renovable, limite temporal y rechazo de resultados sin permiso o bloqueo vigente.
 
 ## Copias y recuperacion
 
@@ -172,7 +173,7 @@ La restauracion no sustituye la base activa. Las copias periodicas estan desacti
 - Migrar SQLite a PostgreSQL u otra base administrada antes de ejecutar multiples instancias.
 - Incorporar una cola compartida, monitoreo centralizado, trazas y alertas para alta disponibilidad completa.
 - Ampliar el uso de historicos persistidos a comparativas multicuenta y datos de audiencia cuando las APIs los permitan.
-- Ejecutar auditoria externa, pruebas de carga y revision de seguridad antes de almacenar informacion de clientes.
+- Ejecutar auditoria externa y pruebas productivas de carga y seguridad antes de almacenar informacion de clientes; las pruebas locales no sustituyen esa validacion.
 
 ## Documentacion
 
@@ -197,6 +198,7 @@ Documentos clave:
 - `docs/28-produccion-y-alta-disponibilidad.md`
 - `docs/29-copias-y-restauracion.md`
 - `docs/30-monitoreo-operativo.md`
+- `docs/31-validacion-concurrencia-y-carga.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `docs/semanales/`
@@ -212,3 +214,4 @@ Documentos clave:
 - `v0.5.0` - Organizaciones, seguridad de cuenta, sincronizacion automatica, conectores multired y base de despliegue.
 - `v0.5.1` - Copias cifradas verificables y restauracion controlada de SQLite.
 - `v0.5.2` - Logs HTTP privados por diseno y metricas operativas protegidas por clave independiente.
+- `v0.5.3` - Refuerzo de concurrencia, permisos, aislamiento y carga local reproducible.

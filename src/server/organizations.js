@@ -1,3 +1,15 @@
+import { hasPermission } from "./permissions.js";
+
+export function hasOrganizationPermission(database, userId, organizationId, permission) {
+  const member = database.prepare(
+    `SELECT m.role_slug AS role FROM organization_members m
+     JOIN users u ON u.id = m.user_id AND u.status = 'active'
+     JOIN organizations o ON o.id = m.organization_id AND o.status = 'active'
+     WHERE m.user_id = ? AND m.organization_id = ? AND m.status = 'active'`
+  ).get(userId, organizationId);
+  return hasPermission(member, permission);
+}
+
 function baseSlug(value) {
   return String(value || "")
     .normalize("NFD")
