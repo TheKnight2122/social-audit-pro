@@ -1,14 +1,40 @@
 import { Router } from "express";
-import { requirePermission } from "../middleware.js";
+import { requireCsrf, requirePermission } from "../middleware.js";
+import { claimSync, executeSync } from "../sync-service.js";
 
-export function createAnalyticsRouter({ database }) {
+export function createAnalyticsRouter({ database, providers = {}, encryptionSecret }) {
   const router = Router();
   router.use(requirePermission("analytics:read"));
+
+  router.post("/dashboard/refresh", requireCsrf, async (request, response, next) => {
+    try {
+      const connections = database.prepare(
+        `SELECT id, platform_slug AS platform FROM oauth_connections
+         WHERE organization_id = ? AND status != 'revoked' ORDER BY id`
+      ).all(request.user.organizationId);
+      // Clients may refresh their organization, but cannot configure or force a provider sync.
+      const results = await Promise.all(connections.map(async (connection) => {
+        const provider = providers[connection.platform];
+        if (!provider?.configured) return { platform: connection.platform, status: "not_configured" };
+        const claim = claimSync(database, { connectionId: connection.id,
+          organizationId: request.user.organizationId, freshnessSeconds: 900 });
+        if (!claim) return { platform: connection.platform, status: "recent_or_busy" };
+        try {
+          await executeSync({ database, encryptionSecret, claim, provider, timeoutMs: 20000,
+            actor: { userId: request.user.id, sessionHash: request.session.tokenHash, permission: "analytics:read" } });
+          return { platform: connection.platform, status: "updated" };
+        } catch {
+          return { platform: connection.platform, status: "failed" };
+        }
+      }));
+      response.json({ results, minimumIntervalMinutes: 15 });
+    } catch (error) { next(error); }
+  });
 
   router.get("/dashboard", (request, response) => {
     const rows = database.prepare(
       `SELECT a.id, a.name, a.handle, a.metadata_json AS metadataJson,
-              p.name AS platform, c.last_sync_at AS lastSyncAt,
+              p.name AS platform, c.last_sync_at AS lastSyncAt, c.status AS connectionStatus,
               (SELECT metric_value FROM metric_snapshots m
                WHERE m.account_id = a.id AND m.metric_key = CASE WHEN c.platform_slug = 'youtube' THEN 'subscribers' ELSE 'followers' END
                ORDER BY m.recorded_at DESC LIMIT 1) AS followers,
@@ -18,7 +44,7 @@ export function createAnalyticsRouter({ database }) {
        FROM social_accounts a
        JOIN oauth_connections c ON c.id = a.oauth_connection_id
        JOIN social_platforms p ON p.slug = c.platform_slug
-       WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status = 'connected'
+       WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status IN ('connected', 'error')
        ORDER BY p.name, a.name`
     ).all(request.user.organizationId);
 
@@ -33,7 +59,7 @@ export function createAnalyticsRouter({ database }) {
         previousFollowers: row.previousFollowers == null ? null : Number(row.previousFollowers),
         hasPreviousFollowers: row.previousFollowers != null,
         profileCompleteness: Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100),
-        status: "connected",
+        status: row.connectionStatus,
         lastSync: row.lastSyncAt,
         source: "official"
       };
@@ -49,7 +75,7 @@ export function createAnalyticsRouter({ database }) {
            JOIN social_accounts a ON a.id = po.account_id
            JOIN oauth_connections c ON c.id = a.oauth_connection_id
            JOIN social_platforms p ON p.slug = c.platform_slug
-           WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status = 'connected'
+           WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status IN ('connected', 'error')
            ORDER BY po.published_at DESC LIMIT 500`
         ).all(request.user.organizationId).map((row) => {
           const metrics = JSON.parse(row.metricsJson || "{}");
@@ -84,7 +110,7 @@ export function createAnalyticsRouter({ database }) {
        FROM metric_snapshots m
        JOIN social_accounts a ON a.id = m.account_id
        JOIN oauth_connections c ON c.id = a.oauth_connection_id
-       WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status = 'connected'
+       WHERE c.organization_id = ? AND a.organization_id = c.organization_id AND c.status IN ('connected', 'error')
          AND m.metric_key = 'analytics_views'
        GROUP BY substr(m.recorded_at, 1, 10)
        ORDER BY day DESC LIMIT 28`

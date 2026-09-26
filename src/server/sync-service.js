@@ -7,8 +7,9 @@ function failure(code, message, statusCode = 409) {
   return Object.assign(new Error(message), { code, statusCode });
 }
 
-export function claimSync(database, { connectionId, organizationId, scheduled = false, leaseSeconds = 600 }) {
+export function claimSync(database, { connectionId, organizationId, scheduled = false, leaseSeconds = 600, freshnessSeconds = 0 }) {
   if (!Number.isInteger(leaseSeconds) || leaseSeconds < 10 || leaseSeconds > 3600) throw new Error("Arrendamiento invalido.");
+  if (!Number.isInteger(freshnessSeconds) || freshnessSeconds < 0) throw new Error("Intervalo invalido.");
   return database.transaction(() => {
     const row = database.prepare(
       `SELECT s.id, s.connection_id AS connectionId, s.organization_id AS organizationId, c.platform_slug AS platform
@@ -18,9 +19,14 @@ export function claimSync(database, { connectionId, organizationId, scheduled = 
        WHERE c.status != 'revoked'
          AND (? IS NULL OR c.id = ?) AND (? IS NULL OR s.organization_id = ?)
          AND (? = 0 OR (s.enabled = 1 AND s.next_run_at <= CURRENT_TIMESTAMP))
+         AND (? = 0 OR (
+           (s.last_started_at IS NULL OR s.last_started_at <= datetime('now', '-' || ? || ' seconds'))
+           AND (s.last_completed_at IS NULL OR s.last_completed_at <= datetime('now', '-' || ? || ' seconds'))
+           AND (s.last_error IS NULL OR s.next_run_at <= CURRENT_TIMESTAMP)))
          AND (s.lease_expires_at IS NULL OR s.lease_expires_at <= CURRENT_TIMESTAMP)
        ORDER BY s.next_run_at, s.id LIMIT 1`
-    ).get(connectionId ?? null, connectionId ?? null, organizationId ?? null, organizationId ?? null, scheduled ? 1 : 0);
+    ).get(connectionId ?? null, connectionId ?? null, organizationId ?? null, organizationId ?? null,
+      scheduled ? 1 : 0, freshnessSeconds, freshnessSeconds, freshnessSeconds);
     if (!row) return null;
     const owner = randomUUID();
     database.prepare(
@@ -58,7 +64,7 @@ export async function executeSync({ database, claim, provider, encryptionSecret,
       `SELECT 1 FROM sessions WHERE token_hash = ? AND user_id = ? AND organization_id = ?
          AND expires_at > CURRENT_TIMESTAMP`
     ).get(actor.sessionHash, actor.userId, claim.organizationId);
-    if (!session || !hasOrganizationPermission(database, actor.userId, claim.organizationId, "sync:run")) {
+    if (!session || !hasOrganizationPermission(database, actor.userId, claim.organizationId, actor.permission || "sync:run")) {
       throw failure("sync_access_changed", "El acceso cambio durante la sincronizacion.", 403);
     }
   }

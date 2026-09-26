@@ -4,6 +4,23 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.4] - 2026-09-26
+
+### Added
+
+- Accesos visuales para administradores y clientes con autenticacion compartida y rol asignado por el servidor.
+- Dashboard de cliente con comunidad, publicaciones, vistas, likes y tabla de impacto, sin sustituir datos ausentes por ejemplos.
+- Actualizacion al entrar al dashboard mediante POST autenticado con CSRF, por organizacion activa.
+- Intervalo persistente de 15 minutos entre consultas por conexion, bloqueo compartido y reintento tras errores.
+- Ocho pruebas nuevas de API; 66 pruebas aprobadas. Validacion visual en escritorio y movil con datos desechables.
+
+### Limitations
+
+- Los portales no son bases de usuarios distintas. La vista sencilla no reemplaza permisos y aislamiento del backend.
+- Cada consulta tiene un limite de 20 segundos; se conservan los datos anteriores ante fallos. No garantiza datos en tiempo real.
+- No se desactivan horarios ya configurados. No se despliega el backend ni se activan credenciales, correo o servicios pagos.
+- GitHub Pages sigue siendo una demostracion estatica, sin sesiones reales.
+
 ## [v0.5.3] - 2026-09-26
 
 ### Security

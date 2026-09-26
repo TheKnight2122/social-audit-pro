@@ -127,7 +127,7 @@ En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues
 
 ## Estado actual
 
-Version `v0.5.3` en desarrollo: refuerza concurrencia y aislamiento, con carga local reproducible, monitoreo HTTP, copias cifradas, seguridad de cuenta, organizaciones, sincronizacion y adaptadores OAuth para las seis redes. YouTube conserva la validacion mas madura. Los demas conectores necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman.
+Version `v0.5.4` en desarrollo: incorpora accesos para administradores y clientes, un resumen de impacto para clientes y actualizacion al entrar al dashboard con proteccion de cuota. Mantiene la concurrencia, aislamiento, copias y controles anteriores. YouTube conserva la validacion mas madura. Los demas conectores necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman. Ver `docs/32-portales-y-actualizacion-dashboard.md`.
 
 ## Funcionalidades terminadas
 

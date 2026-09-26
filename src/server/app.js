@@ -130,7 +130,8 @@ export function createApp({
     youtubeProvider,
     appBaseUrl
   }));
-  app.use("/api/v1/analytics", createAnalyticsRouter({ database }));
+  app.use("/api/v1/analytics", createAnalyticsRouter({ database, encryptionSecret,
+    providers: { ...providers, youtube: youtubeProvider } }));
   app.use("/api/v1/reports", createReportsRouter({ database }));
 
   app.get("/api/v1/activity", requirePermission("activity:read"), (request, response) => {

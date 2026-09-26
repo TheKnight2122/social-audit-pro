@@ -22,6 +22,8 @@ const decimal = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 2 });
 const dateTime = new Intl.DateTimeFormat("es-PE", { dateStyle: "short", timeStyle: "short" });
 
 const state = {
+  dashboardEntry: null,
+  dashboardNotice: "",
   period: "30",
   platform: "all",
   account: "all",
@@ -235,15 +237,18 @@ async function processAccountLink() {
 }
 
 async function loadLiveData() {
-  state.liveData = null;
+  const sessionKey = sessionContextKey();
   if (!state.user || !state.apiAvailable) return;
   try {
     const payload = await apiRequest("/analytics/dashboard");
-    if (payload.accounts?.length) state.liveData = payload;
+    if (sessionKey !== sessionContextKey()) return;
+    state.liveData = payload;
   } catch (error) {
     elements.status.textContent = error.message;
+    return false;
   }
   updateAccountOptions();
+  return true;
 }
 
 function escapeHtml(value) {
@@ -257,11 +262,60 @@ function escapeHtml(value) {
 
 function currentRoute() {
   const requested = window.location.hash.replace(/^#\//, "").split("/")[0];
+  if (state.user?.role === "client" && !["dashboard", "cuenta"].includes(requested)) return "dashboard";
   return routes[requested] ? requested : "dashboard";
 }
 
 function activeData() {
+  if (state.user?.role === "client") return state.liveData || { accounts: [], posts: [], trend: [], lastSync: null };
   return state.liveData?.accounts?.length ? state.liveData : sampleData;
+}
+
+function sessionContextKey() {
+  return state.user && state.csrfToken ? state.csrfToken + ":" + state.user.organization?.id : null;
+}
+
+async function refreshDashboardOnEntry() {
+  const key = sessionContextKey();
+  if (!state.user || !state.apiAvailable || !key || state.dashboardEntry === key) return;
+  state.dashboardEntry = key;
+  state.dashboardNotice = "Actualizando las cuentas conectadas...";
+  render();
+  try {
+    const result = await apiRequest("/analytics/dashboard/refresh", { method: "POST" });
+    if (key !== sessionContextKey()) return;
+    state.dashboardNotice = result.results.some((item) => ["failed", "not_configured"].includes(item.status))
+      ? "Actualizacion incompleta. Se conservan los ultimos datos disponibles."
+      : result.results.some((item) => item.status === "updated") ? "Datos actualizados."
+      : result.results.length ? "Sin nuevas consultas: datos recientes, actualizacion en curso o reintento pendiente."
+      : "No hay cuentas conectadas. El administrador debe vincularlas.";
+    if (await loadLiveData() === false && key === sessionContextKey()) {
+      state.dashboardNotice = "No se pudo cargar la actualizacion. Se conservan los ultimos datos disponibles.";
+    }
+  } catch {
+    if (key !== sessionContextKey()) return;
+    state.dashboardNotice = "No se pudo actualizar. Se conservan los ultimos datos disponibles.";
+  }
+  if (key === sessionContextKey() && currentRoute() === "dashboard") render();
+}
+
+function renderClientDashboard(data) {
+  if (!data.accounts.length) return emptyState("Tu empresa todavia no tiene cuentas con datos disponibles.");
+  function metric(items, field) {
+    const values = items.map((item) => item[field]).filter((value) => typeof value === "number" && Number.isFinite(value));
+    return values.length ? number.format(values.reduce((total, value) => total + value, 0)) : "No disponible";
+  }
+  const cards = [["Comunidad", metric(data.accounts, "followers")], ["Publicaciones", number.format(data.posts.length)],
+    ["Visualizaciones", metric(data.posts, "views")], ["Me gusta", metric(data.posts, "likes")]];
+  return '<section class="summary-grid">' + cards.map(([label, value]) =>
+    '<article class="kpi-card"><span>' + label + '</span><strong>' + value + '</strong></article>').join("") +
+    '</section><section class="client-results">' + panelHeader("Resultados disponibles", "Impacto de tus publicaciones") +
+    '<p>Totales de los datos disponibles. El alcance por publicacion no representa personas unicas entre publicaciones.</p>' +
+    (data.posts.length ? '<div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Red</th><th>Publicacion</th><th>Alcance</th><th>Vistas</th><th>Me gusta</th><th>Comentarios</th></tr></thead><tbody>' +
+      data.posts.map((post) => '<tr><td>' + escapeHtml(post.date) + '</td><td>' + escapeHtml(post.platform) + '</td><td>' +
+        escapeHtml(post.description) + '</td><td>' + metric([post], "reach") + '</td><td>' + metric([post], "views") +
+        '</td><td>' + metric([post], "likes") + '</td><td>' + metric([post], "comments") + '</td></tr>').join("") + '</tbody></table></div>'
+      : emptyState("No hay publicaciones en el periodo seleccionado.")) + '</section>';
 }
 
 function getVisibleAccounts() {
@@ -767,8 +821,12 @@ function renderAccountPage() {
     return notice + '<section class="auth-panel panel"><div><p class="eyebrow">Segundo factor</p><h2>Confirma tu acceso</h2><p>Introduce el codigo temporal de tu aplicacion o uno de recuperacion.</p></div><form id="mfa-login-form" class="auth-form"><label>Codigo de seguridad<input name="code" required autofocus autocomplete="one-time-code" /></label><button class="primary-button" type="submit">Verificar e iniciar sesion</button></form><div id="auth-message" class="form-message" hidden></div></section>';
   }
   const initial = state.needsInitialAdmin;
+  const clientPortal = window.location.hash === "#/cuenta/client";
+  const portalLinks = initial ? "" : '<nav class="login-portals" aria-label="Tipo de acceso"><a href="#/cuenta/admin"' +
+    (!clientPortal ? ' aria-current="page"' : "") + '>Administradores</a><a href="#/cuenta/client"' +
+    (clientPortal ? ' aria-current="page"' : "") + '>Clientes</a></nav>';
   const forgotPassword = initial ? "" : '<article class="password-help panel"><div><p class="eyebrow">Recuperacion</p><h2>Olvide mi contrasena</h2><p>Te enviaremos un enlace de un solo uso si la cuenta existe.</p></div><form id="forgot-password-form" class="auth-form"><label>Correo<input name="email" type="email" required autocomplete="email" /></label><button class="secondary-button" type="submit">Enviar enlace</button></form><div id="recovery-message" class="form-message" hidden></div></article>';
-  return notice + preview + '<section class="auth-workspace"><article class="auth-panel panel"><div><p class="eyebrow">' + (initial ? "Configuracion inicial" : "Acceso") + '</p><h2>' + (initial ? "Crear administrador inicial" : "Iniciar sesion") + '</h2><p>' + (initial ? "Este formulario solo esta disponible mientras no exista ningun usuario." : "Usa una cuenta registrada por un administrador.") + '</p></div><form id="auth-form" class="auth-form">' +
+  return notice + preview + portalLinks + '<section class="auth-workspace"><article class="auth-panel panel"><div><p class="eyebrow">' + (initial ? "Configuracion inicial" : clientPortal ? "Portal de clientes" : "Administracion") + '</p><h2>' + (initial ? "Crear administrador inicial" : "Iniciar sesion") + '</h2><p>' + (initial ? "Este formulario solo esta disponible mientras no exista ningun usuario." : "Usa una cuenta registrada por un administrador.") + '</p></div><form id="auth-form" class="auth-form">' +
     (initial ? '<label>Nombre<input name="displayName" required minlength="2" maxlength="80" autocomplete="name" /></label>' : "") +
     (initial ? '<label>Organizacion<input name="organizationName" required minlength="2" maxlength="100" value="Organizacion principal" /></label>' : "") +
     '<label>Correo<input name="email" type="email" required autocomplete="email" /></label><label>Contrasena<input name="password" type="password" required minlength="12" autocomplete="' + (initial ? "new-password" : "current-password") + '" /></label><button class="primary-button" type="submit">' + (initial ? "Crear cuenta segura" : "Iniciar sesion") + '</button></form><div id="auth-message" class="form-message" hidden></div></article>' + forgotPassword + "</section>";
@@ -903,29 +961,44 @@ function updateAccountOptions() {
 
 function render() {
   const routeName = currentRoute();
+  const client = state.user?.role === "client";
+  if (routeName !== "dashboard") state.dashboardEntry = null;
   const route = routes[routeName];
   const data = allAnalysis();
   elements.eyebrow.textContent = route.eyebrow;
-  elements.title.textContent = route.title;
-  elements.description.textContent = route.description;
+  elements.title.textContent = client && routeName === "dashboard" ? "Tus resultados" : route.title;
+  elements.description.textContent = client && routeName === "dashboard" ? state.user.organization?.name || "" : route.description;
   const lastSync = activeData().lastSync;
   elements.sync.textContent = lastSync
     ? "Ultima actualizacion: " + dateTime.format(new Date(lastSync))
     : "Sin sincronizacion disponible";
   elements.filters.hidden = ["integraciones", "configuracion", "cuenta"].includes(routeName);
-  elements.reportShortcut.hidden = routeName === "reportes";
+  elements.reportShortcut.hidden = client || routeName === "reportes";
   elements.authArea.innerHTML = !state.apiAvailable
     ? '<span class="demo-badge online-badge">Demostracion online</span>'
     : state.user
-    ? '<button id="account-button" class="account-button" type="button"><span>' + escapeHtml(state.user.displayName.slice(0, 2).toUpperCase()) + '</span><b>' + escapeHtml(state.user.role) + "</b></button>"
+    ? '<button id="account-button" class="account-button" type="button"><span>' + escapeHtml(state.user.displayName.slice(0, 2).toUpperCase()) + '</span><b>' + escapeHtml({ admin: "Administrador", analyst: "Analista", client: "Cliente" }[state.user.role] || state.user.role) + "</b></button>"
     : '<button id="account-button" class="secondary-button" type="button">Iniciar sesion</button>';
   elements.navigation.querySelectorAll("a").forEach(function (link) {
+    link.hidden = client && link.dataset.route !== "dashboard";
     const active = link.dataset.route === routeName;
     link.classList.toggle("active", active);
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
-  elements.root.innerHTML = route.render(data);
+  elements.navigation.querySelectorAll(".nav-label").forEach((label) => { label.hidden = client; });
+  if (client) {
+    document.querySelector(".sidebar-note span").textContent = "Portal de clientes";
+    document.querySelector(".sidebar-note p").textContent = "Resultados de tu organizacion";
+    document.querySelector(".sync-block .demo-badge").textContent = state.liveData?.accounts?.length ? "Datos oficiales" : "Sin datos";
+  } else {
+    document.querySelector(".sidebar-note span").textContent = "Entorno demostrativo";
+    document.querySelector(".sidebar-note p").textContent = "Las cifras son simuladas cuando no hay cuentas conectadas.";
+    document.querySelector(".sync-block .demo-badge").textContent = state.liveData?.accounts?.length ? "Datos oficiales" : "Datos demo";
+  }
+  const notice = routeName === "dashboard" && state.user && state.dashboardNotice
+    ? '<p class="dashboard-sync-notice" role="status">' + escapeHtml(state.dashboardNotice) + '</p>' : "";
+  elements.root.innerHTML = notice + (client && routeName === "dashboard" ? renderClientDashboard(data) : route.render(data));
   bindViewEvents(routeName, data);
   const accountButton = document.querySelector("#account-button");
   if (accountButton) {
@@ -936,6 +1009,7 @@ function render() {
   document.title = route.title + " | Social Audit Pro";
   elements.status.textContent = "Vista " + route.title + " cargada";
   hydrateRoute(routeName);
+  if (routeName === "dashboard") void refreshDashboardOnEntry();
 }
 
 function bindViewEvents(routeName, data) {

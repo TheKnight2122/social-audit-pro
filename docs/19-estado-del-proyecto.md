@@ -28,6 +28,15 @@ Social Audit Pro es un MVP avanzado local con backend, persistencia, identidad, 
 - 58 pruebas automatizadas aprobadas; carga local de 500 solicitudes sin errores.
 - Manuales e informes semanales en Word.
 
+## Avance v0.5.4
+
+- Dos accesos visuales, `#/cuenta/admin` y `#/cuenta/client`, comparten autenticacion; el servidor determina el rol, no el enlace elegido.
+- Los clientes tienen resumen y tabla de impacto de su organizacion; no se muestran ejemplos cuando faltan cuentas o datos.
+- Entrar al dashboard solicita actualizacion de conexiones configuradas con intervalo minimo persistente de 15 minutos.
+- Se conservan datos ante fallos, sin mezclar organizaciones. Las sincronizaciones programadas existentes se mantienen.
+- 66 pruebas automatizadas aprobadas y revision visual de ambos accesos y cliente en escritorio/movil.
+- Alojamiento gratuito y uso con clientes son objetivos solicitados, no un despliegue realizado ni garantia de continuidad.
+
 ## Implementado pero pendiente de activacion externa
 
 - Instagram, Facebook, TikTok, LinkedIn y X necesitan aplicaciones registradas, credenciales, permisos aprobados y validacion con cuentas reales.

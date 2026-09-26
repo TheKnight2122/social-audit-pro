@@ -1,5 +1,7 @@
 # Informes semanales
 
+El avance 015 de la semana del 21 al 27 registra las decisiones recibidas, el portal cliente y el refresco al entrar, 66 pruebas y validacion visual con datos simulados. No registra contrataciones ni activaciones externas.
+
 ## Proposito
 
 La carpeta `docs/semanales/` conserva un informe Word por semana para resumir las solicitudes atendidas, el desarrollo realizado, las validaciones, las evidencias visuales y el trabajo pendiente.

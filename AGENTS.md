@@ -11,6 +11,8 @@ El producto esta dirigido a empresas, agencias, community managers y supervisore
 La version actual incluye:
 
 - Once vistas independientes para dashboard, auditoria, metricas, contenido, audiencia, comparativas, insights, recomendaciones, reportes, integraciones y configuracion.
+- Dos accesos visuales con autenticacion compartida; portal cliente con resumen y tabla de impacto, sin datos demo para clientes autenticados.
+- Refresco al entrar al dashboard con sesion y CSRF, intervalo persistente de 15 minutos y bloqueo compartido. No desactiva horarios existentes ni despliega backend online.
 - API REST con Node.js y Express bajo `/api/v1`.
 - Persistencia local con SQLite y `better-sqlite3`.
 - Registro inicial, inicio y cierre de sesion, verificacion de correo, recuperacion, MFA, proteccion CSRF y permisos por rol.
@@ -115,6 +117,7 @@ Leer primero:
 - `docs/20-roadmap.md`
 - `docs/22-documentacion-word.md`
 - `docs/23-informes-semanales.md`
+- `docs/32-portales-y-actualizacion-dashboard.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `CHANGELOG.md`

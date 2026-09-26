@@ -32,6 +32,8 @@ En desarrollo, los mensajes se registran en una bandeja persistente sin guardar 
 
 ## Riesgos conocidos
 
+- El refresco del dashboard permite a miembros lectores consultar conexiones existentes de su organizacion, sin configurarlas. Comparte bloqueo, limita frecuencia y revalida membresia y sesion antes de guardar. Ocultar secciones al cliente es una simplificacion visual; las consultas analiticas de su propia organizacion siguen permitidas por API.
+
 - Los conectores distintos de YouTube necesitan validacion real, revision de permisos y manejo de revocaciones especifico de cada proveedor.
 - SQLite es adecuado para desarrollo y una instancia, pero no para varios servidores escribiendo el mismo archivo.
 - Falta un gestor externo de secretos, rotacion automatica, monitoreo centralizado y respuesta a incidentes.

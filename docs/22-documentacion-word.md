@@ -1,5 +1,7 @@
 # Documentacion Word
 
+La revision v0.5.4 agrega el portal cliente, dos accesos visuales y refresco bajo demanda con 66 pruebas y capturas de fixtures. Actualiza el manual y el informe semanal sin declarar un despliegue productivo.
+
 ## Proposito
 
 El archivo `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx` resume el proyecto con lenguaje accesible, capturas actuales, diagramas y tablas. Complementa la documentacion tecnica en Markdown y sirve para presentaciones, revisiones y transferencia del proyecto.

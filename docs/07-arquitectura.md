@@ -30,6 +30,8 @@ flowchart LR
 
 ## Capas
 
+Desde v0.5.4, el portal cliente es una presentacion simplificada por rol sobre la misma identidad y organizacion. POST `/analytics/dashboard/refresh` reutiliza el ejecutor con permiso de lectura, contexto de sesion, CSRF y limite persistente por conexion; no concede permisos de configuracion. Los portales no duplican las bases de usuarios.
+
 - Presentacion: `index.html`, `src/app.js` y `src/styles.css`.
 - Analitica: `src/analytics.js` y datos demostrativos en `src/data/`.
 - API: composicion en `src/server/app.js` y rutas en `src/server/routes/`.
