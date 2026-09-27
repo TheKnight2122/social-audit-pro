@@ -18,6 +18,7 @@ La version actual incluye:
 - X bloqueado por defecto, incluso con credenciales; habilitar solo tras aprobacion de costes con `X_API_ENABLED=true`.
 - Persistencia local con SQLite y `better-sqlite3`.
 - Lectura de sesiones y limite de intentos asincronos con adaptadores SQLite/PostgreSQL. El backend completo sigue en SQLite; no mezclar motores. Pool y transacciones PostgreSQL probados, sin login completo ni despliegue PostgreSQL aun. Ver `docs/35-acceso-asincrono-postgresql.md`.
+- Recuperacion y verificacion HTTP portables, enlaces de un solo uso y outbox con adaptadores SQLite/PostgreSQL. Reset atomico revoca sesiones y desafios MFA, preserva MFA activo y elimina alta pendiente. Registro/login/gestion MFA siguen en SQLite. Ver `docs/36-recuperacion-postgresql.md`.
 - Esquema PostgreSQL y traslado verificado mediante `npm run db:postgres -- check/apply`, documentado en `docs/34-traslado-postgresql.md`. El runtime sigue en SQLite; no confundir traslado con backend migrado. No ejecutar apply sobre datos reales sin destino autorizado y corte planificado.
 - Registro inicial, inicio y cierre de sesion, verificacion de correo, recuperacion, MFA, proteccion CSRF y permisos por rol.
 - Organizaciones, membresias y aislamiento de datos por organizacion activa.
@@ -125,6 +126,7 @@ Leer primero:
 - `docs/33-piloto-microsoft365-y-presupuesto.md`
 - `docs/34-traslado-postgresql.md`
 - `docs/35-acceso-asincrono-postgresql.md`
+- `docs/36-recuperacion-postgresql.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `CHANGELOG.md`

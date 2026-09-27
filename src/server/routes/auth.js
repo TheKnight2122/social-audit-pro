@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { createSqliteRecoveryStore } from "../recovery-store.js";
+import { createRecoveryRouter, previewPayload, queueVerification } from "./recovery.js";
 import { verify } from "otplib";
 import {
   consumeAuthToken,
@@ -68,17 +70,6 @@ function validateIdentity(body) {
   return { displayName, email, password, errors };
 }
 
-function accountUrl(appBaseUrl, parameter, token) {
-  const url = new URL(appBaseUrl);
-  url.searchParams.set(parameter, token);
-  url.hash = "/cuenta";
-  return url.toString();
-}
-
-function previewPayload(emailService, key, value) {
-  return emailService.previewEnabled ? { [key]: value } : {};
-}
-
 function findSecurityUser(database, userId) {
   return database.prepare(
     `SELECT id, display_name AS displayName, email, password_hash AS passwordHash,
@@ -90,48 +81,6 @@ function findSecurityUser(database, userId) {
   ).get(userId);
 }
 
-async function queueVerification({ database, emailService, appBaseUrl, user, organizationId }) {
-  invalidateAuthTokens(database, user.id, "verify_email");
-  const token = createAuthToken(database, {
-    userId: user.id,
-    organizationId,
-    purpose: "verify_email",
-    ttlMinutes: 24 * 60
-  });
-  const url = accountUrl(appBaseUrl, "verifyEmail", token);
-  const delivery = await emailService.send({
-    organizationId,
-    userId: user.id,
-    to: user.email,
-    template: "verify_email",
-    subject: "Verifica tu correo en Social Audit Pro",
-    text: "Verifica tu correo abriendo este enlace: " + url,
-    html: '<p>Verifica tu correo para proteger tu cuenta.</p><p><a href="' + url + '">Verificar correo</a></p>'
-  });
-  return { delivery, url };
-}
-
-async function queuePasswordReset({ database, emailService, appBaseUrl, user }) {
-  invalidateAuthTokens(database, user.id, "password_reset");
-  const token = createAuthToken(database, {
-    userId: user.id,
-    organizationId: user.organizationId,
-    purpose: "password_reset",
-    ttlMinutes: 30
-  });
-  const url = accountUrl(appBaseUrl, "resetPassword", token);
-  const delivery = await emailService.send({
-    organizationId: user.organizationId,
-    userId: user.id,
-    to: user.email,
-    template: "password_reset",
-    subject: "Restablece tu contrasena de Social Audit Pro",
-    text: "Restablece tu contrasena abriendo este enlace. Caduca en 30 minutos: " + url,
-    html: '<p>Recibimos una solicitud para restablecer tu contrasena.</p><p><a href="' + url + '">Crear una contrasena nueva</a></p><p>El enlace caduca en 30 minutos.</p>'
-  });
-  return { delivery, url };
-}
-
 export function createAuthRouter({
   database,
   secureCookies = false,
@@ -141,6 +90,8 @@ export function createAuthRouter({
   appBaseUrl
 }) {
   const router = Router();
+  const store = createSqliteRecoveryStore(database);
+  router.use(createRecoveryRouter({ store, emailService, appBaseUrl, loginLimiter, secureCookies }));
 
   router.get("/setup", (_request, response) => {
     const userCount = database.prepare("SELECT COUNT(*) AS count FROM users").get().count;
@@ -213,7 +164,7 @@ export function createAuthRouter({
         organization
       };
       const verification = await queueVerification({
-        database,
+        store,
         emailService,
         appBaseUrl,
         user: registeredUser,
@@ -262,7 +213,7 @@ export function createAuthRouter({
 
       if (!user.emailVerifiedAt) {
         const verification = await queueVerification({
-          database, emailService, appBaseUrl, user, organizationId: user.organizationId
+          store, emailService, appBaseUrl, user, organizationId: user.organizationId
         });
         logActivity(database, {
           userId: user.id,
@@ -282,8 +233,7 @@ export function createAuthRouter({
       }
 
       if (user.mfaEnabled) {
-        invalidateAuthTokens(database, user.id, "mfa_login");
-        const challengeToken = createAuthToken(database, {
+        const challengeToken = await createAuthToken(store, {
           userId: user.id,
           organizationId: user.organizationId,
           purpose: "mfa_login",
@@ -321,7 +271,7 @@ export function createAuthRouter({
 
   router.post("/login/2fa", loginLimiter, async (request, response, next) => {
     try {
-      const challenge = readAuthToken(database, request.body.challengeToken, "mfa_login");
+      const challenge = await readAuthToken(store, request.body.challengeToken, "mfa_login");
       if (!challenge) {
         return response.status(400).json({ error: "invalid_challenge", message: "El desafio de acceso caduco o no es valido." });
       }
@@ -338,7 +288,7 @@ export function createAuthRouter({
         return response.status(400).json({ error: "invalid_challenge", message: "El desafio de acceso caduco o no es valido." });
       }
       const result = await verifyMfaCode({ database, user, code: request.body.code, encryptionSecret });
-      if (!result.valid || !consumeAuthToken(database, challenge.id)) {
+      if (!result.valid || !await consumeAuthToken(store, challenge.id)) {
         return response.status(401).json({ error: "invalid_mfa_code", message: "El codigo de seguridad no es valido." });
       }
 
@@ -357,125 +307,6 @@ export function createAuthRouter({
       });
       response.setHeader("Set-Cookie", sessionCookie(session.token, { secure: secureCookies }));
       return response.json({ user: publicUser(sessionUser), csrfToken: session.csrfToken });
-    } catch (error) {
-      return next(error);
-    }
-  });
-
-  router.post("/email-verification/request", requireAuth, requireCsrf, async (request, response, next) => {
-    try {
-      const user = findSecurityUser(database, request.user.id);
-      if (user.emailVerifiedAt) return response.json({ verified: true });
-      const verification = await queueVerification({ database, emailService, appBaseUrl, user, organizationId: request.user.organizationId });
-      logActivity(database, {
-        userId: user.id,
-        organizationId: request.user.organizationId,
-        action: "auth.email_verification_requested",
-        entityType: "user",
-        entityId: user.id,
-        ipAddress: request.ip
-      });
-      return response.status(202).json({
-        verified: false,
-        deliveryConfigured: emailService.configured,
-        ...previewPayload(emailService, "previewVerificationUrl", verification.url)
-      });
-    } catch (error) {
-      return next(error);
-    }
-  });
-
-  router.post("/email-verification/confirm", async (request, response, next) => {
-    try {
-      const token = readAuthToken(database, request.body.token, "verify_email");
-      if (!token) {
-        return response.status(400).json({ error: "invalid_token", message: "El enlace de verificacion caduco o no es valido." });
-      }
-      const updated = database.transaction(() => {
-        if (!consumeAuthToken(database, token.id)) return false;
-        database.prepare(
-          "UPDATE users SET email_verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-        ).run(token.userId);
-        invalidateAuthTokens(database, token.userId, "verify_email");
-        return true;
-      })();
-      if (!updated) {
-        return response.status(400).json({ error: "invalid_token", message: "El enlace de verificacion caduco o no es valido." });
-      }
-      logActivity(database, {
-        userId: token.userId,
-        organizationId: token.organizationId,
-        action: "auth.email_verified",
-        entityType: "user",
-        entityId: token.userId,
-        ipAddress: request.ip
-      });
-      return response.json({ verified: true });
-    } catch (error) {
-      return next(error);
-    }
-  });
-
-  router.post("/password/forgot", loginLimiter, async (request, response, next) => {
-    try {
-      const email = normalizeEmail(request.body.email);
-      const user = database.prepare(
-        `SELECT u.id, u.email, u.default_organization_id AS organizationId
-         FROM users u WHERE u.email = ? AND u.status = 'active'`
-      ).get(email);
-      let reset;
-      if (user) {
-        reset = await queuePasswordReset({ database, emailService, appBaseUrl, user });
-        logActivity(database, {
-          userId: user.id,
-          organizationId: user.organizationId,
-          action: "auth.password_reset_requested",
-          entityType: "user",
-          entityId: user.id,
-          ipAddress: request.ip
-        });
-      }
-      return response.status(202).json({
-        message: "Si el correo esta registrado, recibira un enlace de recuperacion.",
-        ...(reset ? previewPayload(emailService, "previewResetUrl", reset.url) : {})
-      });
-    } catch (error) {
-      return next(error);
-    }
-  });
-
-  router.post("/password/reset", async (request, response, next) => {
-    try {
-      const errors = validatePassword(String(request.body.password || ""));
-      if (errors.length) return response.status(400).json({ error: "validation_error", details: errors });
-      const token = readAuthToken(database, request.body.token, "password_reset");
-      if (!token) {
-        return response.status(400).json({ error: "invalid_token", message: "El enlace de recuperacion caduco o no es valido." });
-      }
-      const passwordHash = await hashPassword(request.body.password);
-      const updated = database.transaction(() => {
-        if (!consumeAuthToken(database, token.id)) return false;
-        database.prepare(
-          "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-        ).run(passwordHash, token.userId);
-        database.prepare("DELETE FROM sessions WHERE user_id = ?").run(token.userId);
-        invalidateAuthTokens(database, token.userId, "password_reset");
-        invalidateAuthTokens(database, token.userId, "mfa_login");
-        return true;
-      })();
-      if (!updated) {
-        return response.status(400).json({ error: "invalid_token", message: "El enlace de recuperacion caduco o no es valido." });
-      }
-      logActivity(database, {
-        userId: token.userId,
-        organizationId: token.organizationId,
-        action: "auth.password_reset_completed",
-        entityType: "user",
-        entityId: token.userId,
-        ipAddress: request.ip
-      });
-      response.setHeader("Set-Cookie", clearSessionCookie({ secure: secureCookies }));
-      return response.json({ reset: true });
     } catch (error) {
       return next(error);
     }
@@ -565,7 +396,7 @@ export function createAuthRouter({
              mfa_pending_secret_encrypted = NULL, mfa_recovery_codes_json = '[]',
              updated_at = CURRENT_TIMESTAMP WHERE id = ?`
       ).run(user.id);
-      invalidateAuthTokens(database, user.id, "mfa_login");
+      await invalidateAuthTokens(store, user.id, "mfa_login");
       logActivity(database, {
         userId: user.id,
         organizationId: request.user.organizationId,

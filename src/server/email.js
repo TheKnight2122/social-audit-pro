@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { createMicrosoftMailTransport } from "./microsoft-mail.js";
+import { createSqliteEmailStore } from "./email-store.js";
 
 export function emailTransportFromEnvironment() {
   const provider = process.env.EMAIL_PROVIDER || "smtp";
@@ -22,6 +23,7 @@ function smtpTransportFromEnvironment() {
 
 export function createEmailService({
   database,
+  store = createSqliteEmailStore(database),
   transport = emailTransportFromEnvironment(),
   from = process.env.EMAIL_FROM || "Social Audit Pro <no-reply@localhost>",
   environment = process.env.NODE_ENV || "development"
@@ -31,12 +33,7 @@ export function createEmailService({
       (environment === "development" && process.env.EMAIL_PREVIEW_ENABLED === "true"),
     configured: Boolean(transport),
     async send({ organizationId = null, userId, to, template, subject, text, html }) {
-      const queued = database.prepare(
-        `INSERT INTO email_outbox
-          (organization_id, user_id, recipient, template, payload_json)
-         VALUES (?, ?, ?, ?, ?)`
-      ).run(organizationId, userId, to, template, JSON.stringify({ subject }));
-      const outboxId = Number(queued.lastInsertRowid);
+      const outboxId = await store.enqueue({ organizationId, userId, to, template, subject });
 
       if (!transport) {
         return { delivered: false, outboxId, reason: "email_not_configured" };
@@ -44,22 +41,13 @@ export function createEmailService({
 
       try {
         await transport.sendMail({ from, to, subject, text, html });
-        database.prepare(
-          `UPDATE email_outbox
-           SET status = 'sent', attempts = attempts + 1, sent_at = CURRENT_TIMESTAMP,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE id = ?`
-        ).run(outboxId);
-        return { delivered: true, outboxId };
       } catch {
-        database.prepare(
-          `UPDATE email_outbox
-           SET status = 'failed', attempts = attempts + 1, last_error = ?,
-               updated_at = CURRENT_TIMESTAMP
-           WHERE id = ?`
-        ).run("El proveedor no confirmo la aceptacion del correo.", outboxId);
+        await store.markFailed(outboxId);
         return { delivered: false, outboxId, reason: "delivery_failed" };
       }
+      // A persistence failure after provider acceptance must not be labelled as a send failure.
+      await store.markSent(outboxId);
+      return { delivered: true, outboxId };
     }
   };
 }

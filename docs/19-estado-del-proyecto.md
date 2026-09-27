@@ -2,6 +2,8 @@
 
 ## Resumen ejecutivo
 
+Avance v0.5.8: rutas de recuperacion y verificacion, enlaces y outbox adaptados a SQLite/PostgreSQL; 105 pruebas aprobadas. Se comprueban uso unico, caducidad, rollback, revocacion de sesiones y privacidad del correo. El runtime sigue en SQLite; registro, login y gestion MFA completos en PostgreSQL siguen pendientes, junto con datos y trabajadores. No se envio correo real ni se activo alojamiento.
+
 Avance v0.5.7: lectura de sesiones y limite de acceso separados del motor, probados en SQLite y PostgreSQL, con pool y transacciones acotados; 96 pruebas aprobadas. El backend completo sigue en SQLite. La prueba PostgreSQL usa sesiones de fixture, no un login completo del producto. Falta portar el resto de autenticacion, datos y trabajadores antes del despliegue.
 
 Avance v0.5.6: herramienta de traslado SQLite a PostgreSQL y esquema nuevo, probados con datos desechables; 84 pruebas aprobadas. Se incorporo una prueba PostgreSQL 16 al workflow. No se modifico la base real, no se porto aun el runtime y no se desplego backend online.

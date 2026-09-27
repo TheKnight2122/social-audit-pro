@@ -5,6 +5,11 @@ import { preparePostgresTransfer, applyPostgresTransfer, postgresTransferConfig 
 import { seedTenant } from "./lib/validation-fixture.js";
 import { createPostgresPool, withPostgresTransaction } from "../src/server/postgres-pool.js";
 import { createPostgresAccessStore } from "../src/server/access-store.js";
+import { createPostgresRecoveryStore } from "../src/server/recovery-store.js";
+import { createPostgresEmailStore } from "../src/server/email-store.js";
+import { createAuthToken, readAuthToken } from "../src/server/account-security.js";
+import { hashToken } from "../src/server/security.js";
+import { recoveryHttpContract, recoveryTokenContract, recoveryRollbackContract, emailFailureContract } from "./lib/recovery-contract.js";
 
 // Only a disposable, empty PostgreSQL database on loopback is admitted by this test.
 const url = process.env.POSTGRES_TEST_URL;
@@ -66,7 +71,32 @@ try {
   assert.equal(await stores[1].consumeLoginAttempt("other-fixture-address", options), true);
   await client.query("UPDATE social_audit.login_attempts SET attempted_at = '2000-01-01T00:00:00.000Z'");
   assert.equal(await stores[0].consumeLoginAttempt("same-fixture-address", options), true);
-  console.log("PostgreSQL: traslado, rollback, sesiones, permisos, UTC y limite atomico entre dos pools verificados.");
+  for (const tenant of [first, second]) {
+    await client.query(`INSERT INTO social_audit.sessions (token_hash, user_id, organization_id, csrf_token, expires_at)
+      VALUES ($1, $2, $3, $4, $5) ON CONFLICT (token_hash) DO UPDATE SET expires_at = excluded.expires_at`,
+    [tenant.sessionHash, tenant.userId, tenant.organizationId, tenant.csrf, new Date(Date.now() + 3600000).toISOString()]);
+  }
+  const recoveries = pools.map(createPostgresRecoveryStore);
+  const recoveryOptions = { store: recoveries[0], emailStore: createPostgresEmailStore(pools[0]),
+    accessStore: stores[0], query: (sql, values) => pools[0].query(sql, values), prefix: "social_audit.", first, second };
+  await recoveryRollbackContract(recoveryOptions);
+  await recoveryTokenContract(recoveryOptions);
+  const issued = await Promise.all(Array.from({ length: 12 }, (_, index) => createAuthToken(recoveries[index % 2], {
+    userId: first.userId, organizationId: first.organizationId, purpose: "password_reset", ttlMinutes: 30
+  })));
+  const remaining = await Promise.all(issued.map(token => readAuthToken(recoveries[0], token, "password_reset")));
+  assert.equal(remaining.filter(Boolean).length, 1);
+  const current = issued[remaining.findIndex(Boolean)];
+  const outcomes = await Promise.all(Array.from({ length: 12 }, (_, index) =>
+    recoveries[index % 2].resetPassword(hashToken(current), "fixture-competing-password")));
+  assert.equal(outcomes.filter(Boolean).length, 1);
+  assert.equal(await stores[1].loadSession(first.sessionHash), undefined);
+  await client.query(`INSERT INTO social_audit.sessions (token_hash, user_id, organization_id, csrf_token, expires_at)
+    VALUES ($1, $2, $3, $4, $5)`, [first.sessionHash, first.userId, first.organizationId, first.csrf, new Date(Date.now() + 3600000).toISOString()]);
+  await recoveryHttpContract(recoveryOptions);
+  await client.query("DELETE FROM social_audit.email_outbox");
+  await emailFailureContract(recoveryOptions);
+  console.log("PostgreSQL: traslado, acceso, recuperacion HTTP, correo y enlaces de un solo uso entre dos pools verificados.");
 } catch {
   console.error("Fallo de prueba PostgreSQL. Usar exclusivamente una base desechable vacia en loopback.");
   process.exitCode = 1;

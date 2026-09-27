@@ -70,4 +70,6 @@ El enrutamiento por hash mantiene una sola carga de aplicacion, pero cada ruta r
 
 ## Escalabilidad
 
+Las rutas `routes/recovery.js` ya dependen de `recovery-store.js` y el correo de `email-store.js`, con adaptadores SQLite y PostgreSQL. El controlador HTTP es el mismo en las pruebas de ambos motores. No se ejecutan envios de correo dentro de transacciones. El resto de autenticacion sigue en `routes/auth.js` con SQLite; la aplicacion no permite mezclar motores. Ver `36-recuperacion-postgresql.md`.
+
 Las sesiones, intentos de acceso y tareas programadas ya viven en base de datos; el trabajador usa arrendamientos para evitar duplicados. Esta es una preparacion, no una garantia de alta disponibilidad. SQLite y su archivo local siguen siendo el limite principal para multiples servidores.

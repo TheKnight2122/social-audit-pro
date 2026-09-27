@@ -127,7 +127,7 @@ En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues
 
 ## Estado actual
 
-Ultimo avance: `v0.5.7`. Sesiones y limite de acceso con adaptadores asincronos SQLite/PostgreSQL, pool acotado y 96 pruebas. El backend completo sigue arrancando en SQLite: falta portar las demas operaciones antes de habilitar PostgreSQL. Ver `docs/35-acceso-asincrono-postgresql.md`. Se conserva el traslado verificado de v0.5.6. Microsoft 365 sigue pendiente de autorizacion externa y X permanece bloqueado por presupuesto.
+Ultimo avance: `v0.5.8`. Recuperacion de contrasena, verificacion de correo y registro de entrega con adaptadores SQLite/PostgreSQL y 105 pruebas. Los enlaces se reemplazan y consumen atomicamente. El backend completo sigue arrancando en SQLite: faltan registro, login, gestion MFA y otros modulos antes de habilitar PostgreSQL. Ver `docs/36-recuperacion-postgresql.md`. Se conservan los adaptadores de acceso y el traslado verificado. Microsoft 365 sigue pendiente de autorizacion externa y X permanece bloqueado por presupuesto.
 
 La base `v0.5.4` incorpora accesos para administradores y clientes, un resumen de impacto para clientes y actualizacion al entrar al dashboard con proteccion de cuota. Mantiene la concurrencia, aislamiento, copias y controles anteriores. YouTube conserva la validacion mas madura. Los demas conectores necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman. Ver `docs/32-portales-y-actualizacion-dashboard.md`.
 
@@ -153,7 +153,7 @@ La base `v0.5.4` incorpora accesos para administradores y clientes, un resumen d
 - Imagen Docker, Compose de referencia, validaciones de produccion, apagado ordenado y endpoints de vida/disponibilidad.
 - Copias online cifradas, verificadas y programables; restauracion a un archivo nuevo con sesiones invalidadas y sincronizaciones pausadas.
 - Logs HTTP sin datos sensibles, identificador de solicitud y metricas de proceso protegidas para el operador.
-- Noventa y seis pruebas automatizadas exitosas y prueba de carga local con datos desechables.
+- Ciento cinco pruebas automatizadas exitosas y prueba de carga local con datos desechables.
 - Sincronizacion manual y automatica con bloqueo compartido renovable, limite temporal y rechazo de resultados sin permiso o bloqueo vigente.
 
 ## Copias y recuperacion
@@ -203,6 +203,7 @@ Documentos clave:
 - `docs/31-validacion-concurrencia-y-carga.md`
 - `docs/34-traslado-postgresql.md`
 - `docs/35-acceso-asincrono-postgresql.md`
+- `docs/36-recuperacion-postgresql.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `docs/semanales/`

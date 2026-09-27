@@ -1,5 +1,7 @@
 # Documentacion Word
 
+La revision v0.5.8 agrega recuperacion y verificacion portables, enlaces atomicos, outbox, 105 pruebas y las limitaciones de activacion. Actualiza el manual y el informe semanal; no cambia la interfaz ni sus capturas.
+
 La revision v0.5.7 documenta los adaptadores de acceso, pool PostgreSQL, expiracion y limite concurrente, con 96 pruebas. Distingue esta primera adaptacion del backend PostgreSQL completo aun pendiente.
 
 La revision v0.5.6 agrega el traslado verificado a PostgreSQL, sus medidas de seguridad y limites, con 84 pruebas. El backend activo sigue usando SQLite; no hay despliegue online nuevo.

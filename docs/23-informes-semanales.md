@@ -1,5 +1,7 @@
 # Informes semanales
 
+El avance 019 de la misma semana agrega recuperacion/verificacion HTTP y outbox en SQLite/PostgreSQL, 105 pruebas y validacion de concurrencia de enlaces. No registra despliegue productivo, envio real ni costes nuevos.
+
 El avance 018 de la misma semana agrega adaptacion asincrona de sesiones/limite de acceso, pool PostgreSQL, 96 pruebas y prueba concurrente de servidor en CI. Conserva SQLite como motor activo.
 
 El avance 017 de la misma semana incorpora esquema y CLI de traslado PostgreSQL, validacion con datos desechables, 84 pruebas y prueba PostgreSQL servidor en el workflow. No registra migracion real ni contratacion.

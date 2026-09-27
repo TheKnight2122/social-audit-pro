@@ -4,6 +4,25 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.8] - 2026-09-26
+
+### Added
+
+- Rutas de recuperacion y verificacion independientes del motor, con adaptadores SQLite/PostgreSQL para enlaces y outbox.
+- Contratos HTTP compartidos, nueve pruebas nuevas (105 en total) y concurrencia entre dos pools PostgreSQL en CI.
+- Guia tecnica, avance 019 y actualizacion del manual e informe semanal Word.
+
+### Security
+
+- Reemplazo y consumo atomicos de enlaces por usuario, rechazo de cuentas inactivas y caducidad interpretada como fecha.
+- Reset revoca sesiones y desafios MFA en la misma transaccion; conserva MFA activo y limpia configuracion pendiente.
+- Correo sin cuerpos ni enlaces persistidos; fallo al guardar aceptacion no se confunde con fallo del proveedor ni dispara reenvios.
+
+### Limitations
+
+- Registro/login y gestion MFA completos, datos y trabajadores aun requieren portado; el servidor sigue en SQLite.
+- No hay correo real, migracion de datos reales, despliegue nuevo ni servicios contratados.
+
 ## [v0.5.7] - 2026-09-26
 
 ### Added

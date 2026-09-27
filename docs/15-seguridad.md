@@ -49,6 +49,8 @@ En desarrollo, los mensajes se registran en una bandeja persistente sin guardar 
 
 ## Antes de produccion
 
+Desde v0.5.8, reemplazar enlaces y completar recuperacion/verificacion usa transacciones por usuario. El vencimiento interpreta fechas UTC SQL e ISO; las cuentas desactivadas no pueden consumir enlaces. Reset invalida sesiones y desafios MFA y limpia el alta MFA pendiente, sin desactivar el segundo factor vigente. La outbox guarda solo asunto, destino y estado, nunca cuerpo ni enlace. Un fallo al registrar la aceptacion del proveedor no se etiqueta como fallo de envio ni provoca reenvio automatico. Estas pruebas no acreditan autenticacion PostgreSQL completa ni correo real entregado.
+
 1. Migrar la persistencia a una base administrada con copias de seguridad.
 2. Configurar HTTPS, secretos externos, SMTP y politicas de retencion.
 3. Validar OAuth con aplicaciones aprobadas y cuentas de prueba de cada proveedor.
