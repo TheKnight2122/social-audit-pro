@@ -1,5 +1,7 @@
 # Documentacion Word
 
+La revision v0.5.7 documenta los adaptadores de acceso, pool PostgreSQL, expiracion y limite concurrente, con 96 pruebas. Distingue esta primera adaptacion del backend PostgreSQL completo aun pendiente.
+
 La revision v0.5.6 agrega el traslado verificado a PostgreSQL, sus medidas de seguridad y limites, con 84 pruebas. El backend activo sigue usando SQLite; no hay despliegue online nuevo.
 
 La revision v0.5.5 registra Microsoft 365 preparado, X bloqueado por presupuesto, 76 pruebas y decisiones confirmadas para un piloto gratuito con pausas. El envio real y el despliegue siguen pendientes.

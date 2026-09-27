@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { openDatabase } from "./database.js";
+import { postgresConnectionConfig } from "./postgres-config.js";
 
 export const transferTables = Object.freeze([
   "roles", "social_platforms", "organizations", "users", "organization_members",
@@ -184,14 +185,6 @@ export async function applyPostgresTransfer(client, plan) {
 }
 
 export function postgresTransferConfig(value, allowLocalPlaintext = false) {
-  let url;
-  try { url = new URL(value); } catch { throw safeError("target_config", "MIGRATION_DATABASE_URL no es valida."); }
-  if (!["postgres:", "postgresql:"].includes(url.protocol) || !url.hostname || !url.username ||
-      url.pathname.length < 2 || url.hash || url.search) {
-    throw safeError("target_config", "Usa una URL PostgreSQL sin parametros; TLS se valida automaticamente.");
-  }
-  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (allowLocalPlaintext && !local) throw safeError("target_config", "La excepcion sin TLS solo se permite en loopback.");
-  return { connectionString: value, ssl: allowLocalPlaintext ? false : { rejectUnauthorized: true },
+  return { ...postgresConnectionConfig(value, allowLocalPlaintext),
     connectionTimeoutMillis: 10000, query_timeout: 45000, application_name: "social-audit-pro-transfer" };
 }

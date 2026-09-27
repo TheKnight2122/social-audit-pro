@@ -2,6 +2,8 @@
 
 ## Resumen ejecutivo
 
+Avance v0.5.7: lectura de sesiones y limite de acceso separados del motor, probados en SQLite y PostgreSQL, con pool y transacciones acotados; 96 pruebas aprobadas. El backend completo sigue en SQLite. La prueba PostgreSQL usa sesiones de fixture, no un login completo del producto. Falta portar el resto de autenticacion, datos y trabajadores antes del despliegue.
+
 Avance v0.5.6: herramienta de traslado SQLite a PostgreSQL y esquema nuevo, probados con datos desechables; 84 pruebas aprobadas. Se incorporo una prueba PostgreSQL 16 al workflow. No se modifico la base real, no se porto aun el runtime y no se desplego backend online.
 
 Avance v0.5.5: transporte Microsoft 365 preparado y probado con respuestas simuladas, X bloqueado por presupuesto, 76 pruebas aprobadas. El usuario confirma piloto gratuito con pausas, aislamiento por empresa y crecimiento gradual. Faltan autorizacion del correo, credenciales sociales, base compartida y despliegue. No se ha enviado correo real ni se ha contratado alojamiento en este avance.

@@ -25,7 +25,7 @@
 ## Siguiente fase - Produccion
 
 1. Configurar cuentas de piloto gratuito, PostgreSQL administrado, autorizacion Microsoft 365 y secretos privados. Las pausas fueron aceptadas; no equivale a disponibilidad productiva garantizada.
-2. Portar el runtime y consultas desde SQLite. v0.5.6 ya incluye esquema PostgreSQL y traslado verificado; falta el acceso asincrono en API, autenticacion y trabajadores.
+2. Portar el runtime y consultas desde SQLite. v0.5.6 incluye esquema y traslado; v0.5.7 adapta lectura de sesiones y limite de acceso, con pool y transacciones. Faltan las demas operaciones de autenticacion, datos y trabajadores antes de habilitar el motor.
 3. Automatizar despliegues y transferencia externa/retencion de copias; probar recuperacion productiva.
 4. Separar API y trabajador con una cola compartida.
 5. Centralizar logs y metricas de proceso; incorporar trazas, colector y alertas externas.

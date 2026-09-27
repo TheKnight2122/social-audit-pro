@@ -4,6 +4,26 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.7] - 2026-09-26
+
+### Added
+
+- Adaptadores asincronos SQLite/PostgreSQL para lectura de sesiones y limite de acceso, reutilizando middleware de permisos y CSRF.
+- Pool acotado con TLS validado, UTC y transacciones de un unico cliente con rollback, liberacion y descarte ante confirmacion ambigua.
+- Limite PostgreSQL por bloqueo transaccional y prueba de servidor con dos pools y 30 intentos concurrentes.
+- Doce pruebas nuevas, 96 en total, guia de arquitectura y actualizacion de manual e informe Word.
+
+### Fixed
+
+- Expiracion de sesiones interpretada como fecha, evitando aceptar fechas ISO vencidas por comparacion alfabetica.
+- Conteo e insercion de intentos SQLite agrupados en una transaccion inmediata.
+
+### Limitations
+
+- El backend completo sigue iniciando en SQLite. Falta portar las demas operaciones antes de activar PostgreSQL.
+- La prueba PostgreSQL utiliza sesiones de fixture; no valida aun registro/login/MFA completos sobre ese motor.
+- No se migraron datos reales ni se desplegaron o contrataron servicios externos.
+
 ## [v0.5.6] - 2026-09-26
 
 ### Added

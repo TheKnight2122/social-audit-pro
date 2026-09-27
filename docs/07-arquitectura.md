@@ -30,6 +30,8 @@ flowchart LR
 
 ## Capas
 
+En v0.5.7 el middleware consume `access-store.js` para leer sesiones y limitar intentos de forma asincrona. El arranque selecciona expresamente SQLite; el adaptador PostgreSQL se valida de forma aislada, sin mezclar motores en una peticion. `postgres-pool.js` administra clientes, UTC, limites y transacciones de un unico cliente. El resto de persistencia continua en SQLite. Ver `docs/35-acceso-asincrono-postgresql.md`.
+
 En v0.5.6 se agrega una herramienta independiente de traslado a PostgreSQL. `postgres-transfer.js` valida una instantanea SQLite, prepara medidas de seguridad e importa mediante un cliente asincrono `pg` a un esquema nuevo, con transaccion y verificacion. `migrations/postgresql/` no se ejecuta al iniciar SQLite. El runtime HTTP y los trabajadores todavia no usan PostgreSQL; no se ha implementado un adaptador intercambiable ni alta disponibilidad. Ver `docs/34-traslado-postgresql.md`.
 
 En v0.5.5, `email.js` selecciona SMTP o el transporte HTTPS `microsoft-mail.js`. Microsoft 365 usa una aplicacion del tenant y un buzon remitente fijo; el token solo se mantiene en memoria. X requiere habilitacion expresa mediante `X_API_ENABLED=true`, ademas de credenciales, tras aprobar costes.

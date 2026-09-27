@@ -10,6 +10,8 @@ import { createOrganizationsRouter } from "./routes/organizations.js";
 import { createYouTubeProvider } from "./integrations/youtube.js";
 import { createEmailService } from "./email.js";
 import { createObservability } from "./observability.js";
+import { createSqliteAccessStore } from "./access-store.js";
+import { createLoginLimiter } from "./login-limiter.js";
 import {
   sameOrigin,
   securityHeaders,
@@ -18,30 +20,6 @@ import {
 } from "./middleware.js";
 
 const projectRoot = resolve(fileURLToPath(new URL("../../", import.meta.url)));
-
-function createLoginLimiter(database, { windowMs = 15 * 60 * 1000, maxAttempts = 5 } = {}) {
-  const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
-  return function loginLimiter(request, response, next) {
-    const key = request.ip || "unknown";
-    database.prepare(
-      "DELETE FROM login_attempts WHERE attempted_at <= datetime('now', '-' || ? || ' seconds')"
-    ).run(windowSeconds);
-    const active = database.prepare(
-      `SELECT COUNT(*) AS count FROM login_attempts
-       WHERE attempt_key = ?
-         AND attempted_at > datetime('now', '-' || ? || ' seconds')`
-    ).get(key, windowSeconds).count;
-    if (active >= maxAttempts) {
-      response.setHeader("Retry-After", Math.ceil(windowMs / 1000));
-      return response.status(429).json({
-        error: "rate_limited",
-        message: "Demasiados intentos. Intenta nuevamente mas tarde."
-      });
-    }
-    database.prepare("INSERT INTO login_attempts (attempt_key) VALUES (?)").run(key);
-    return next();
-  };
-}
 
 export function createApp({
   database,
@@ -63,6 +41,7 @@ export function createApp({
   trustProxy = process.env.TRUST_PROXY === "true" ? 1 : false
 }) {
   if (!database) throw new Error("La aplicacion necesita una base de datos.");
+  const accessStore = createSqliteAccessStore(database);
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", trustProxy);
@@ -76,7 +55,7 @@ export function createApp({
   app.get("/api/v1/operations/metrics", observability.metrics);
   app.use(express.json({ limit: "256kb" }));
   app.use(sameOrigin);
-  app.use(sessionLoader(database));
+  app.use(sessionLoader(accessStore));
   const accountEmailService = emailService || createEmailService({
     database,
     transport: emailTransport
@@ -116,7 +95,7 @@ export function createApp({
   app.use("/api/v1/auth", createAuthRouter({
     database,
     secureCookies,
-    loginLimiter: createLoginLimiter(database, loginLimit),
+    loginLimiter: createLoginLimiter(accessStore, loginLimit),
     encryptionSecret,
     emailService: accountEmailService,
     appBaseUrl

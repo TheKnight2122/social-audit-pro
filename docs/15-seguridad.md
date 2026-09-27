@@ -2,6 +2,9 @@
 
 ## Controles implementados
 
+- Desde v0.5.7, expiracion de sesiones interpretada como fecha, tambien para ISO; solo sesiones validas actualizan actividad. El limite SQLite agrupa conteo e insercion atomicamente. El adaptador PostgreSQL probado usa bloqueo transaccional por clave y lectura de permisos vigentes; aun no es el motor del backend completo.
+- Pool PostgreSQL preparado con TLS verificado, UTC, consultas con esquema calificado y tiempos/conexiones acotados. Transacciones con un cliente y descarte ante confirmacion ambigua, sin reintentos automaticos ni logs de errores privados del proveedor.
+
 - Contrasenas derivadas con `scrypt` y salt individual.
 - Sesiones persistentes con token aleatorio almacenado como hash y cookie `HttpOnly` y `SameSite=Strict`.
 - Proteccion CSRF, comprobacion de origen y permisos por rol en backend.

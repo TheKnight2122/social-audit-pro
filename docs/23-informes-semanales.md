@@ -1,5 +1,7 @@
 # Informes semanales
 
+El avance 018 de la misma semana agrega adaptacion asincrona de sesiones/limite de acceso, pool PostgreSQL, 96 pruebas y prueba concurrente de servidor en CI. Conserva SQLite como motor activo.
+
 El avance 017 de la misma semana incorpora esquema y CLI de traslado PostgreSQL, validacion con datos desechables, 84 pruebas y prueba PostgreSQL servidor en el workflow. No registra migracion real ni contratacion.
 
 El avance 016 de la misma semana agrega las respuestas recibidas, transporte Microsoft 365, bloqueo de API de pago, 76 pruebas y captura de X desactivado. No se registra activacion externa ni alojamiento contratado.

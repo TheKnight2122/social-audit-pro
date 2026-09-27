@@ -25,38 +25,11 @@ export function sameOrigin(request, response, next) {
   return next();
 }
 
-export function sessionLoader(database) {
-  const findSession = database.prepare(
-    `SELECT
-       s.token_hash AS tokenHash,
-       s.csrf_token AS csrfToken,
-       s.expires_at AS expiresAt,
-       u.id,
-       u.display_name AS displayName,
-       u.email,
-       u.email_verified_at AS emailVerifiedAt,
-       u.mfa_enabled AS mfaEnabled,
-       m.role_slug AS role,
-       u.status,
-       o.id AS organizationId,
-       o.name AS organizationName,
-       o.slug AS organizationSlug
-     FROM sessions s
-     JOIN users u ON u.id = s.user_id
-     JOIN organization_members m
-       ON m.user_id = u.id AND m.organization_id = s.organization_id
-     JOIN organizations o ON o.id = m.organization_id
-     WHERE s.token_hash = ? AND s.expires_at > CURRENT_TIMESTAMP
-       AND m.status = 'active' AND o.status = 'active'`
-  );
-  const touchSession = database.prepare(
-    "UPDATE sessions SET last_seen_at = CURRENT_TIMESTAMP WHERE token_hash = ?"
-  );
-
-  return function loadSession(request, _response, next) {
+export function sessionLoader(accessStore) {
+  return async function loadSession(request, _response, next) {
     const token = parseCookies(request.headers.cookie).sap_session;
     if (!token) return next();
-    const session = findSession.get(hashToken(token));
+    const session = await accessStore.loadSession(hashToken(token));
     if (session && session.status === "active") {
       request.user = {
         id: session.id,
@@ -73,7 +46,6 @@ export function sessionLoader(database) {
         }
       };
       request.session = session;
-      touchSession.run(session.tokenHash);
     }
     return next();
   };

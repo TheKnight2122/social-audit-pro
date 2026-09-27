@@ -2,6 +2,8 @@
 
 ## Estado
 
+Continuacion v0.5.7: ya se adaptaron lectura de sesiones y limite de acceso, con pool PostgreSQL; las demas operaciones siguen pendientes. Ver `docs/35-acceso-asincrono-postgresql.md`. Este documento conserva el alcance del traslado de v0.5.6.
+
 v0.5.6 incorpora el esquema PostgreSQL y una herramienta de traslado verificado. **No cambia el backend activo:** `npm start` sigue usando SQLite. No configurar `DATABASE_URL` esperando que cambie el motor. Falta portar consultas, transacciones, autenticacion, sincronizacion y copias antes de poner la API sobre PostgreSQL.
 
 No se ha trasladado la base real ni contratado un proveedor. Las pruebas usan datos desechables. GitHub Pages sigue siendo una demostracion estatica.
