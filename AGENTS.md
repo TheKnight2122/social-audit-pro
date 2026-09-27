@@ -17,6 +17,7 @@ La version actual incluye:
 - Transporte Microsoft 365 Graph preparado, pendiente de autorizacion del jefe y envio real. SMTP sigue disponible; no almacenar errores originales de correo.
 - X bloqueado por defecto, incluso con credenciales; habilitar solo tras aprobacion de costes con `X_API_ENABLED=true`.
 - Persistencia local con SQLite y `better-sqlite3`.
+- Esquema PostgreSQL y traslado verificado mediante `npm run db:postgres -- check/apply`, documentado en `docs/34-traslado-postgresql.md`. El runtime sigue en SQLite; no confundir traslado con backend migrado. No ejecutar apply sobre datos reales sin destino autorizado y corte planificado.
 - Registro inicial, inicio y cierre de sesion, verificacion de correo, recuperacion, MFA, proteccion CSRF y permisos por rol.
 - Organizaciones, membresias y aislamiento de datos por organizacion activa.
 - Gestion persistente de usuarios, integraciones, historicos, publicaciones, reportes y actividad.
@@ -121,6 +122,7 @@ Leer primero:
 - `docs/23-informes-semanales.md`
 - `docs/32-portales-y-actualizacion-dashboard.md`
 - `docs/33-piloto-microsoft365-y-presupuesto.md`
+- `docs/34-traslado-postgresql.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `CHANGELOG.md`

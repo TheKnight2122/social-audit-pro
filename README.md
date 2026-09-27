@@ -127,7 +127,7 @@ En una base nueva, abrir `#/cuenta` para crear el administrador inicial. Despues
 
 ## Estado actual
 
-Ultimo avance: `v0.5.5`. Microsoft 365 preparado mediante Graph HTTPS, pendiente de autorizacion externa. X queda bloqueado por defecto por presupuesto. Se mantienen las funciones de v0.5.4. Ver `docs/33-piloto-microsoft365-y-presupuesto.md`.
+Ultimo avance: `v0.5.6`. Esquema y herramienta de traslado verificado a PostgreSQL, con 84 pruebas. El backend sigue en SQLite: el traslado no cambia el motor activo ni despliega el servicio. Ver `docs/34-traslado-postgresql.md`. Microsoft 365 sigue pendiente de autorizacion externa y X permanece bloqueado por presupuesto.
 
 La base `v0.5.4` incorpora accesos para administradores y clientes, un resumen de impacto para clientes y actualizacion al entrar al dashboard con proteccion de cuota. Mantiene la concurrencia, aislamiento, copias y controles anteriores. YouTube conserva la validacion mas madura. Los demas conectores necesitan credenciales, permisos y pruebas con cuentas reales antes de considerarse activos en produccion. Las metricas no disponibles no se estiman. Ver `docs/32-portales-y-actualizacion-dashboard.md`.
 
@@ -153,7 +153,7 @@ La base `v0.5.4` incorpora accesos para administradores y clientes, un resumen d
 - Imagen Docker, Compose de referencia, validaciones de produccion, apagado ordenado y endpoints de vida/disponibilidad.
 - Copias online cifradas, verificadas y programables; restauracion a un archivo nuevo con sesiones invalidadas y sincronizaciones pausadas.
 - Logs HTTP sin datos sensibles, identificador de solicitud y metricas de proceso protegidas para el operador.
-- Cincuenta y ocho pruebas automatizadas exitosas y prueba de carga local con datos desechables.
+- Ochenta y cuatro pruebas automatizadas exitosas y prueba de carga local con datos desechables.
 - Sincronizacion manual y automatica con bloqueo compartido renovable, limite temporal y rechazo de resultados sin permiso o bloqueo vigente.
 
 ## Copias y recuperacion
@@ -201,6 +201,7 @@ Documentos clave:
 - `docs/29-copias-y-restauracion.md`
 - `docs/30-monitoreo-operativo.md`
 - `docs/31-validacion-concurrencia-y-carga.md`
+- `docs/34-traslado-postgresql.md`
 - `docs/manuales/Manual-de-avance-Social-Audit-Pro.docx`
 - `docs/manuales/Guia-visual-del-codigo-Social-Audit-Pro.docx`
 - `docs/semanales/`

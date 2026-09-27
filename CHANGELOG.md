@@ -4,6 +4,23 @@ Todos los cambios importantes del proyecto se documentaran en este archivo.
 
 El formato sigue categorias inspiradas en Keep a Changelog: Added, Changed, Fixed, Removed y Security.
 
+## [v0.5.6] - 2026-09-26
+
+### Added
+
+- Esquema PostgreSQL y CLI de comprobacion offline/traslado explicito a destino nuevo.
+- Instantanea SQLite en memoria con soporte WAL, validacion del origen, lotes y verificacion SHA-256 del contenido; rollback ante fallos.
+- TLS remoto verificado, errores sin datos privados, secuencias conservadas y restricciones de organizacion en cuentas y horarios.
+- Sesiones/enlaces invalidados y tareas/correo pendiente pausados exclusivamente en la copia; SQLite original sin modificar.
+- Ocho pruebas nuevas, total 84, y prueba PostgreSQL 16 en CI con dos conexiones y datos desechables.
+- Guia operativa, avance y actualizacion de manual e informe semanal Word.
+
+### Limitations
+
+- No porta aun el runtime Express a PostgreSQL ni despliega un backend online.
+- No se trasladaron datos reales. Requiere destino nuevo autorizado, copia previa y corte de escrituras para un futuro traslado definitivo.
+- Limite de instantanea de 256 MiB; tipos temporales y JSON conservados como texto. Claves originales se custodian aparte.
+
 ## [v0.5.5] - 2026-09-26
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "social-audit-pro",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Plataforma web para auditoria y analisis profesional de redes sociales.",
   "type": "module",
   "scripts": {
@@ -8,6 +8,8 @@
     "start": "node server.js",
     "test": "node --test",
     "test:load": "node scripts/load-smoke.js",
+    "test:postgres": "node scripts/postgres-smoke.js",
+    "db:postgres": "node scripts/database-postgres.js",
     "db:backup": "node scripts/database-backup.js create",
     "db:verify": "node scripts/database-backup.js verify",
     "db:restore": "node scripts/database-backup.js restore"
@@ -28,9 +30,11 @@
     "nodemailer": "^10.0.10",
     "otplib": "^13.5.0",
     "pdfkit": "^0.20.2",
+    "pg": "^8.23.0",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "supertest": "^7.2.2"
   }
 }

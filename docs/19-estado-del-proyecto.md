@@ -2,6 +2,8 @@
 
 ## Resumen ejecutivo
 
+Avance v0.5.6: herramienta de traslado SQLite a PostgreSQL y esquema nuevo, probados con datos desechables; 84 pruebas aprobadas. Se incorporo una prueba PostgreSQL 16 al workflow. No se modifico la base real, no se porto aun el runtime y no se desplego backend online.
+
 Avance v0.5.5: transporte Microsoft 365 preparado y probado con respuestas simuladas, X bloqueado por presupuesto, 76 pruebas aprobadas. El usuario confirma piloto gratuito con pausas, aislamiento por empresa y crecimiento gradual. Faltan autorizacion del correo, credenciales sociales, base compartida y despliegue. No se ha enviado correo real ni se ha contratado alojamiento en este avance.
 
 Social Audit Pro es un MVP avanzado local con backend, persistencia, identidad, organizaciones, analitica, PDF, conectores OAuth y sincronizacion automatica. La demostracion publica sigue siendo estatica y segura para presentacion. El producto todavia no es un servicio SaaS desplegado ni una plataforma de alta disponibilidad.
@@ -49,7 +51,7 @@ Social Audit Pro es un MVP avanzado local con backend, persistencia, identidad, 
 ## Pendiente
 
 - Desplegar backend, base y correo en un proveedor productivo.
-- Migrar SQLite a PostgreSQL o equivalente compartido.
+- Portar el runtime a PostgreSQL y ejecutar el traslado validado. Ya existe la herramienta de transferencia, no el backend PostgreSQL completo.
 - Separar API y trabajadores mediante cola administrada.
 - Configurar balanceo, almacenamiento externo de copias, retencion, centralizacion de metricas/logs, trazas y alertas.
 - Completar revocacion y manejo de cuotas especifico de cada proveedor.

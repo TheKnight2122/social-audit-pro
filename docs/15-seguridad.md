@@ -32,6 +32,8 @@ En desarrollo, los mensajes se registran en una bandeja persistente sin guardar 
 
 ## Riesgos conocidos
 
+- El traslado PostgreSQL de v0.5.6 exige un destino nuevo y TLS remoto verificado; invalida sesiones y pausa tareas solo en la copia. No descifra secretos ni verifica disponibilidad de sus claves. La migracion real requiere copia previa, detener escrituras, custodiar claves originales y revisar acceso MFA. No confundir la prueba de traslado con una auditoria del futuro backend PostgreSQL.
+
 - El refresco del dashboard permite a miembros lectores consultar conexiones existentes de su organizacion, sin configurarlas. Comparte bloqueo, limita frecuencia y revalida membresia y sesion antes de guardar. Ocultar secciones al cliente es una simplificacion visual; las consultas analiticas de su propia organizacion siguen permitidas por API.
 
 - Los conectores distintos de YouTube necesitan validacion real, revision de permisos y manejo de revocaciones especifico de cada proveedor.

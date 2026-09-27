@@ -18,6 +18,20 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sap_fixture
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: sap_transfer_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sap_fixture -d sap_transfer_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v6
@@ -32,6 +46,11 @@ jobs:
 
       - name: Verificar pruebas automatizadas
         run: npm test
+
+      - name: Verificar traslado en PostgreSQL real desechable
+        run: npm run test:postgres
+        env:
+          POSTGRES_TEST_URL: postgresql://sap_fixture:disposable_ci_only@127.0.0.1:5432/sap_transfer_test
 
       - name: Verificar carga local con datos desechables
         run: npm run test:load -- 200 8
