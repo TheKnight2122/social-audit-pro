@@ -1,4 +1,4 @@
-# Requisitos del dispositivo para trasladar y alojar Social Audit Pro
+# Tecnologías y requisitos para trasladar y alojar Social Audit Pro
 
 Fecha: 13 de octubre de 2026. Alcance: backend Node.js y Express, base SQLite, sincronización y PDF de una sola instancia.
 
@@ -69,6 +69,28 @@ El backend activo sigue usando SQLite. Se recomienda una instancia para el pilot
 GitHub Pages aloja únicamente la demo estática, sin backend, autenticación persistente, sincronización ni PDF generado por el servidor. El alojamiento completo requiere un proveedor que ejecute Node.js y conserve el disco; no basta un plan que solo publique archivos estáticos.
 
 Antes de aceptar el traslado comprobar: reinicio automático; persistencia tras reinicio; HTTPS si es público; login y aislamiento por organización; reporte PDF; correo real cuando se habilite; conector autorizado y datos reales identificados; copia externa y restauración; uso de CPU, RAM y disco con datos representativos. No se ha certificado alta disponibilidad ni capacidad productiva con este informe.
+
+## Tecnologías utilizadas en el proyecto
+
+El sistema separa interfaz web, analítica, API REST, autenticación, persistencia, conectores y tareas de sincronización. La siguiente tabla distingue las tecnologías activas de los componentes preparados o pendientes de despliegue.
+
+| Componente | Tecnología | Uso y estado |
+| --- | --- | --- |
+| Interfaz y gráficos | HTML, CSS y JavaScript | Vistas, filtros, cálculos y gráficos propios. Sin React, Angular ni Chart.js. |
+| Backend | Node.js y Express | API REST bajo /api/v1, permisos y ejecución del servidor local. |
+| Base de datos activa | SQLite y better-sqlite3 | Archivo persistente local para usuarios, sesiones, organizaciones, publicaciones, históricos y reportes. |
+| Reportes | PDFKit | Generación de documentos PDF desde el backend. |
+| Correo | Nodemailer y Microsoft Graph | SMTP disponible; transporte Microsoft 365 preparado, sujeto a autorización y configuración real. |
+| Segundo factor | otplib y qrcode | Códigos TOTP y QR para configurar autenticadores. |
+| APIs de redes | googleapis y adaptadores OAuth | YouTube, Facebook, Instagram, TikTok, LinkedIn y X. Su implementación no confirma conexión real; necesitan permisos, credenciales y validación. X está bloqueado por presupuesto. |
+| Configuración | dotenv | Lectura de variables privadas del entorno. Los secretos no se guardan en GitHub. |
+| Pruebas | node:test y Supertest | Pruebas unitarias y HTTP. PGlite se usa en pruebas de adaptadores PostgreSQL. |
+| Versionado y publicación | Git, GitHub y GitHub Actions | Historial del código y flujo de publicación de la demostración. |
+| Hosting público actual | GitHub Pages | Solo frontend estático de demostración. No aloja el backend ni SQLite. |
+| Despliegue preparado | Docker y Docker Compose | Archivos para una instancia con volúmenes persistentes. No acreditan un despliegue productivo activo. |
+| Migración parcial | PostgreSQL y pg | Esquema y adaptadores preparados. El backend completo sigue usando SQLite. |
+
+Visual Studio Code permite editar y ejecutar comandos, pero no es una dependencia del servidor. No se utiliza PHP, Laravel, MySQL, XAMPP ni Hostinger en el alojamiento actual del proyecto. El hardware del informe corresponde al backend completo de una instancia; para visitar la demostración pública basta un navegador.
 
 ## Referencias
 
